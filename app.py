@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from queue import Queue
 from zipfile import ZipFile, ZIP_DEFLATED
 import json
 import os
+import threading
 import uuid
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, send_file, abort
+from flask import Flask, Response, render_template, request, redirect, url_for, send_file, abort, stream_with_context
 
 from apify_client import ApifyEvidenceClient, MockApifyClient, should_use_live_apify
 from llm_client import should_use_live_llm
@@ -213,14 +215,42 @@ def read_result(run_id: str) -> dict | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def run_project(project: dict) -> str:
+def run_project(project: dict, progress=None) -> str:
+    emit = progress if callable(progress) else (lambda _event: None)
+
+    emit({"stage": "collect_web", "status": "active", "message": "Collecting external web evidence..."})
     sources, collector_status = collect_sources(project)
+    emit({
+        "stage": "collect_web",
+        "status": "done",
+        "message": collector_status.get("message", "External evidence collected."),
+        "count": collector_status.get("normalized_sources", len(sources)),
+        "mode": collector_status.get("mode"),
+    })
+
+    emit({"stage": "collect_box", "status": "active", "message": "Importing Box folder evidence..."})
     box_sources, box_read_status = collect_box_sources(project)
     sources.extend(box_sources)
-    result = generate_role_briefs(project, sources, project["roles"])
+    emit({
+        "stage": "collect_box",
+        "status": "done",
+        "message": box_read_status.get("message", "Box import step complete."),
+        "count": len(box_sources),
+    })
+
+    emit({
+        "stage": "briefs",
+        "status": "active",
+        "message": "Generating role briefs...",
+        "total": len(project["roles"]),
+    })
+    result = generate_role_briefs(project, sources, project["roles"], progress=emit)
     result["collector_status"] = collector_status
     result["box_read_status"] = box_read_status
+    emit({"stage": "briefs", "status": "done", "message": "All role briefs generated."})
+
     # Final release turns the generated analysis into a submit-ready package.
+    emit({"stage": "package", "status": "active", "message": "Building the hackathon submission package..."})
     result["hackathon_package"] = generate_hackathon_package(result)
     result["manifest"]["outputs"]["submission_package"] = [
         f"submission_package/{filename}"
@@ -245,9 +275,17 @@ def run_project(project: dict) -> str:
         if metadata_path not in result["manifest"]["outputs"]["metadata"]:
             result["manifest"]["outputs"]["metadata"].append(metadata_path)
     result["manifest"]["collector_status"] = collector_status
+    emit({"stage": "package", "status": "done", "message": "Submission package and showcase layer ready."})
+
     run_id = uuid.uuid4().hex[:10]
+    emit({"stage": "box_sync", "status": "active", "message": "Writing project memory and syncing to Box..."})
     project_folder = write_local_box_run(run_id, result)
     sync_to_box_and_persist(run_id, result, project_folder)
+    emit({
+        "stage": "box_sync",
+        "status": "done",
+        "message": result.get("box_sync_status", {}).get("message", "Box project memory written."),
+    })
     return run_id
 
 
@@ -279,6 +317,19 @@ def analyze():
     return redirect(url_for("show_result", run_id=run_id))
 
 
+@app.post("/analyze/stream")
+def analyze_stream():
+    """Run the pipeline in a worker thread and stream progress events as NDJSON.
+
+    Each line is a JSON object describing a pipeline stage. The final line is a
+    `complete` event carrying the run_id (or an `error` event on failure). The
+    browser uses these events to render a live status panel, then redirects to
+    the result page.
+    """
+    project = build_project_from_form(request.form)
+    return _stream_run(project)
+
+
 @app.get("/demo")
 def demo():
     project = dict(SAMPLE_PROJECT)
@@ -289,6 +340,51 @@ def demo():
     project["_use_sample_sources"] = True
     run_id = run_project(project)
     return redirect(url_for("show_result", run_id=run_id))
+
+
+def _build_demo_project() -> dict:
+    project = dict(SAMPLE_PROJECT)
+    project["use_live_box"] = should_use_live_box(None)
+    project["use_box_read"] = should_read_live_box(None)
+    project["box_source_folder_id"] = os.getenv("BOX_SOURCE_FOLDER_ID", "").strip()
+    project["use_live_llm"] = should_use_live_llm(None)
+    project["_use_sample_sources"] = True
+    return project
+
+
+def _stream_run(project: dict) -> Response:
+    """Shared NDJSON progress streamer for the custom and demo pipelines."""
+    events: "Queue[dict | None]" = Queue()
+
+    def worker() -> None:
+        try:
+            run_id = run_project(project, progress=events.put)
+            events.put({"stage": "complete", "status": "done", "run_id": run_id,
+                        "result_url": url_for("show_result", run_id=run_id),
+                        "message": "Done. Opening your role briefs..."})
+        except Exception as exc:
+            events.put({"stage": "error", "status": "error", "message": f"Run failed: {exc}"})
+        finally:
+            events.put(None)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    @stream_with_context
+    def generate():
+        yield json.dumps({"stage": "start", "status": "active", "message": "Starting RoleBrief AI pipeline..."}) + "\n"
+        while True:
+            event = events.get()
+            if event is None:
+                break
+            yield json.dumps(event) + "\n"
+
+    return Response(generate(), mimetype="application/x-ndjson",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/demo/stream")
+def demo_stream():
+    return _stream_run(_build_demo_project())
 
 
 @app.get("/run/<run_id>")

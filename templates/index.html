@@ -23,7 +23,7 @@
         <span class="pill">Showcase layer = routed task inbox</span>
       </div>
       <div class="hero-actions">
-        <a class="button primary" href="{{ url_for('demo') }}">Run sample demo</a>
+        <a class="button primary" href="{{ url_for('demo') }}" data-demo-stream>Run sample demo</a>
         <a class="button" href="#custom">Create custom project</a>
       </div>
       {% if demo_mode %}
@@ -79,7 +79,7 @@
         <p>Use the sample button for the cleanest demo, or enable live Apify / Box after adding tokens.</p>
       </div>
 
-      <form action="{{ url_for('analyze') }}" method="post" class="form">
+      <form action="{{ url_for('analyze') }}" method="post" class="form" data-analyze-form data-stream-url="{{ url_for('analyze_stream') }}">
         <label>
           Project name
           <input name="project_name" placeholder="RoleBrief AI" value="RoleBrief AI">
@@ -174,5 +174,34 @@
       </form>
     </section>
   </main>
+
+  <!-- Live pipeline progress overlay (progressive enhancement; hidden without JS) -->
+  <div class="progress-overlay" id="progress-overlay" hidden aria-live="polite" aria-hidden="true">
+    <div class="progress-modal" role="dialog" aria-modal="true" aria-labelledby="progress-title">
+      <div class="progress-head">
+        <div class="spinner" aria-hidden="true"></div>
+        <div>
+          <h2 id="progress-title">Building your role briefs</h2>
+          <p class="progress-current" id="progress-current">Starting RoleBrief AI pipeline...</p>
+        </div>
+      </div>
+
+      <div class="progress-bar"><span class="progress-bar-fill" id="progress-bar-fill"></span></div>
+
+      <ol class="progress-steps" id="progress-steps">
+        <li data-step="collect_web"><span class="step-dot"></span><span class="step-label">Collect external web evidence</span></li>
+        <li data-step="collect_box"><span class="step-dot"></span><span class="step-label">Import Box folder evidence</span></li>
+        <li data-step="briefs"><span class="step-dot"></span><span class="step-label">Generate role briefs <span class="step-sub" id="briefs-sub"></span></span></li>
+        <li data-step="package"><span class="step-dot"></span><span class="step-label">Build submission package</span></li>
+        <li data-step="box_sync"><span class="step-dot"></span><span class="step-label">Write &amp; sync Box project memory</span></li>
+      </ol>
+
+      <div class="progress-log" id="progress-log" aria-label="Activity log"></div>
+
+      <p class="progress-error" id="progress-error" hidden></p>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='progress.js') }}" data-demo-stream-url="{{ url_for('demo_stream') }}"></script>
 </body>
 </html>

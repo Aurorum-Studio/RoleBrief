@@ -554,7 +554,13 @@ def judge_pitch_pack_markdown(project: dict, evidence_map: dict, generated_at: s
     )
 
 
-def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles: list[str] | None = None) -> dict:
+def generate_role_briefs(
+    project: dict,
+    sources: list[dict] | None = None,
+    roles: list[str] | None = None,
+    progress=None,
+) -> dict:
+    emit = progress if callable(progress) else (lambda _event: None)
     sources = sources or project.get("sources") or []
     roles = normalize_roles(roles or project.get("roles"))
     generated_at = datetime.utcnow().isoformat(timespec="seconds") + "Z"
@@ -567,9 +573,25 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
 
     use_live_llm = bool(project.get("use_live_llm")) or should_use_live_llm(None)
     llm_enhancer = create_llm_enhancer(use_live_llm)
+    live_gemini_active = bool(getattr(llm_enhancer.state, "enabled", False) and getattr(llm_enhancer, "api_key", ""))
 
     briefs = {}
-    for role in roles:
+    total_roles = len(roles)
+    for index, role in enumerate(roles):
+        label = ROLE_LABELS[role]
+        emit({
+            "stage": "briefs",
+            "status": "role_active",
+            "role": role,
+            "label": label,
+            "index": index + 1,
+            "total": total_roles,
+            "message": (
+                f"Querying Gemini for the {label} ({index + 1}/{total_roles})..."
+                if live_gemini_active
+                else f"Composing the {label} from evidence ({index + 1}/{total_roles})..."
+            ),
+        })
         sections = _role_sections(role, project, sources, evidence_map)
         draft_markdown = brief_to_markdown(role, project, sources, sections, generated_at)
         markdown, llm_status = llm_enhancer.enhance(
@@ -592,6 +614,21 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
             "generation_mode": "gemini" if llm_status.get("enhanced") else "deterministic_local",
             "llm_status": llm_status,
         }
+        enhanced = bool(llm_status.get("enhanced"))
+        emit({
+            "stage": "briefs",
+            "status": "role_done",
+            "role": role,
+            "label": label,
+            "index": index + 1,
+            "total": total_roles,
+            "enhanced": enhanced,
+            "message": (
+                f"{label} enhanced by Gemini ({index + 1}/{total_roles})."
+                if enhanced
+                else f"{label} ready from the deterministic engine ({index + 1}/{total_roles})."
+            ),
+        })
 
     llm_generation = llm_enhancer.state.to_dict()
 
