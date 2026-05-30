@@ -38,6 +38,9 @@ env/
 *.swo
 *~
 .DS_Store
+*.config
+*.config.kiro
+.kiro/
 
 # Flask
 instance/
