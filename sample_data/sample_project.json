@@ -1,0 +1,18 @@
+{
+  "project_name": "RoleBrief AI",
+  "tagline": "One project. Many audiences.",
+  "project_goal": "Build a Box-centered project intelligence workspace that creates different briefs for different stakeholders.",
+  "external_urls": [
+    "https://luma.com/cascadia-ai-hackathon-2026",
+    "https://developer.box.com/ai/box-ai-api",
+    "https://apify.com/apify/website-content-crawler"
+  ],
+  "roles": [
+    "engineer",
+    "pm",
+    "executive",
+    "sales",
+    "legal",
+    "judge"
+  ]
+}

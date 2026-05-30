@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RoleBrief AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">Hackathon Batch 3 · Real Box project memory</div>
+      <h1>RoleBrief AI</h1>
+      <p class="tagline">One project. Many audiences.</p>
+      <p class="hero-copy">
+        Turn messy project notes and external web evidence into role-specific briefs, then store every
+        source, report, and manifest in a Box project-memory folder.
+      </p>
+      <div class="pill-row">
+        <span class="pill">Box = trusted memory</span>
+        <span class="pill">Apify = live web evidence</span>
+        <span class="pill">AI = role translator</span>
+      </div>
+      <div class="hero-actions">
+        <a class="button primary" href="{{ url_for('demo') }}">Run sample demo</a>
+        <a class="button" href="#custom">Create custom project</a>
+      </div>
+      {% if demo_mode %}
+      <p class="status">Demo mode is on. The sample demo uses curated evidence and does not need API keys.</p>
+      {% endif %}
+      <div class="env-status-grid">
+        <p class="status {% if has_apify_token %}ok{% endif %}">
+          Apify token: {% if has_apify_token %}detected{% else %}not set{% endif %}. Live crawl default: {{ "on" if use_real_apify_env else "off" }}.
+        </p>
+        <p class="status {% if has_box_token %}ok{% endif %}">
+          Box token: {% if has_box_token %}detected{% else %}not set{% endif %}. Live Box default: {{ "on" if use_real_box_env else "off" }}. Parent folder: {{ box_parent_folder_id }}.
+        </p>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>What it proves</h2>
+        <p>
+          This is not a generic summarizer. It proves that the same project evidence should
+          produce different outputs for different people.
+        </p>
+      </article>
+      <article class="card">
+        <h2>Why Box</h2>
+        <p>
+          Batch 3 writes the generated project memory to real Box: sources, role briefs,
+          manifests, evidence status, and Box sync metadata.
+        </p>
+      </article>
+      <article class="card">
+        <h2>Why Apify</h2>
+        <p>
+          Apify can crawl external URLs, normalize web evidence, and feed the same role-brief pipeline.
+          Mock fallback keeps the demo stable.
+        </p>
+      </article>
+    </section>
+
+    <section id="custom" class="panel">
+      <div class="section-heading">
+        <h2>Create a role-aware project brief</h2>
+        <p>Use the sample button for the cleanest demo, or enable live Apify / Box after adding tokens.</p>
+      </div>
+
+      <form action="{{ url_for('analyze') }}" method="post" class="form">
+        <label>
+          Project name
+          <input name="project_name" placeholder="RoleBrief AI" value="RoleBrief AI">
+        </label>
+
+        <label>
+          Tagline
+          <input name="tagline" placeholder="One project. Many audiences." value="One project. Many audiences.">
+        </label>
+
+        <label>
+          Project goal
+          <textarea name="project_goal" rows="4" placeholder="What is the project trying to do?">Build a Box-centered project intelligence workspace that reads external web evidence and internal notes, then generates role-specific briefings for different stakeholders.</textarea>
+        </label>
+
+        <label>
+          External URLs, one per line
+          <textarea name="external_urls" rows="4" placeholder="https://example.com/docs">{{ "\n".join(sample.external_urls) }}</textarea>
+        </label>
+
+        <label>
+          Internal notes
+          <textarea name="internal_notes" rows="5" placeholder="Paste messy project notes here.">{{ sample.internal_notes }}</textarea>
+        </label>
+
+        <fieldset>
+          <legend>Evidence collection mode</legend>
+          <label class="checkbox wide">
+            <input type="checkbox" name="use_live_apify" {% if use_real_apify_env %}checked{% endif %}>
+            <span>Try live Apify crawl for the external URLs</span>
+          </label>
+          <p class="field-hint">
+            Requires <code>USE_REAL_APIFY=true</code> or this checkbox, plus <code>APIFY_API_TOKEN</code> in <code>.env</code>.
+            If the crawl fails, the app automatically falls back to mock evidence so the demo still works.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Box export mode</legend>
+          <label class="checkbox wide">
+            <input type="checkbox" name="use_live_box" {% if use_real_box_env %}checked{% endif %}>
+            <span>Upload generated project memory to real Box</span>
+          </label>
+          <p class="field-hint">
+            Requires <code>USE_REAL_BOX=true</code> or this checkbox, plus <code>BOX_DEVELOPER_TOKEN</code> in <code>.env</code>.
+            The local Box-style mirror is always written first, so the demo still works if Box upload fails.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Audience roles</legend>
+          <div class="role-grid">
+            {% for key, label in roles.items() %}
+              <label class="checkbox">
+                <input type="checkbox" name="roles" value="{{ key }}" {% if key in default_roles %}checked{% endif %}>
+                <span>{{ label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <button class="button primary" type="submit">Generate role briefs</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

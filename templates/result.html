@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ result.project.project_name }} · RoleBrief AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar">
+      <a href="{{ url_for('index') }}">← New run</a>
+      <a href="{{ url_for('download_run', run_id=run_id) }}">Download generated Box mirror</a>
+    </nav>
+
+    <section class="hero compact">
+      <div class="eyebrow">Run {{ run_id }}</div>
+      <h1>{{ result.project.project_name }}</h1>
+      <p class="tagline">{{ result.project.tagline or "One project. Many audiences." }}</p>
+      <p class="hero-copy">{{ result.project.project_goal }}</p>
+      <div class="score">
+        <span class="score-number">{{ result.sponsor_fit["total_score"] }}</span>
+        <span>
+          <strong>Sponsor Fit Score</strong>
+          <small>Local scoring heuristic for hackathon storytelling</small>
+        </span>
+      </div>
+    </section>
+
+    <section class="two-panels">
+      <section class="panel no-margin">
+        <div class="section-heading">
+          <h2>Evidence collection status</h2>
+          <p>Apify can crawl live pages, but mock fallback keeps the demo reliable.</p>
+        </div>
+        <div class="status-card {% if result.collector_status.ok %}ok-card{% else %}warn-card{% endif %}">
+          <div>
+            <h3>{{ result.collector_status.mode }}</h3>
+            <p>{{ result.collector_status.message }}</p>
+          </div>
+          <div class="status-metrics">
+            <span><strong>{{ result.collector_status.requested_urls }}</strong><small>URLs</small></span>
+            <span><strong>{{ result.collector_status.returned_items }}</strong><small>Items</small></span>
+            <span><strong>{{ result.collector_status.normalized_sources }}</strong><small>Sources</small></span>
+          </div>
+        </div>
+        {% if result.collector_status.warnings %}
+        <ul class="warning-list">
+          {% for warning in result.collector_status.warnings %}
+          <li>{{ warning }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </section>
+
+      <section class="panel no-margin">
+        <div class="section-heading">
+          <h2>Box sync status</h2>
+          <p>Batch 3 writes the same project memory locally and, when enabled, to real Box.</p>
+        </div>
+        {% set box_status = result.box_sync_status %}
+        <div class="status-card {% if box_status.ok %}ok-card{% else %}warn-card{% endif %}">
+          <div>
+            <h3>{{ box_status.mode }}</h3>
+            <p>{{ box_status.message }}</p>
+            {% if box_status.root_folder_url %}
+            <p class="box-link"><a href="{{ box_status.root_folder_url }}" target="_blank" rel="noopener">Open generated Box folder ↗</a></p>
+            {% endif %}
+          </div>
+          <div class="status-metrics">
+            <span><strong>{{ box_status.created_folders }}</strong><small>Folders</small></span>
+            <span><strong>{{ box_status.uploaded_files }}</strong><small>Files</small></span>
+            <span><strong>{{ box_status.parent_folder_id }}</strong><small>Parent</small></span>
+          </div>
+        </div>
+        {% if box_status.warnings %}
+        <ul class="warning-list">
+          {% for warning in box_status.warnings %}
+          <li>{{ warning }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </section>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Project memory layout</h2>
+        <p>These files exist locally. In live Box mode, the same tree is uploaded to the generated Box folder.</p>
+      </div>
+      <div class="codebox">{{ project_folder }}</div>
+      <div class="output-grid">
+        <div>
+          <h3>Sources</h3>
+          <ul>
+            {% for item in result.manifest["outputs"]["sources"] %}
+            <li><code>{{ item }}</code></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Role briefs</h3>
+          <ul>
+            {% for item in result.manifest["outputs"]["role_briefs"] %}
+            <li><code>{{ item }}</code></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Metadata</h3>
+          <ul>
+            {% for item in result.manifest["outputs"]["metadata"] %}
+            <li><code>{{ item }}</code></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    {% if result.box_sync_status.uploaded_items %}
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Uploaded Box artifacts</h2>
+        <p>When live Box is enabled, these generated artifacts are uploaded through the Box API.</p>
+      </div>
+      <div class="artifact-list">
+        {% for item in result.box_sync_status.uploaded_items[:12] %}
+        <div class="artifact-row">
+          <code>{{ item.relative_path }}</code>
+          {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">Open</a>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="grid">
+      {% for item in result.sponsor_fit["items"] %}
+      <article class="card">
+        <div class="mini-score">{{ item.score }}</div>
+        <h3>{{ item.label }}</h3>
+        <p>{{ item.why }}</p>
+      </article>
+      {% endfor %}
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Evidence collected</h2>
+        <p>These are the sources that feed all role-specific reports.</p>
+      </div>
+      <div class="source-list">
+        {% for source in result.sources %}
+        <article class="source-card">
+          <div class="source-id">{{ source.id }}</div>
+          <div>
+            <h3>{{ source.title }}</h3>
+            <p class="muted">{{ source.url }}</p>
+            <p>{{ source.summary }}</p>
+            <ul>
+              {% for point in source.key_points %}
+              <li>{{ point }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Role-specific briefs</h2>
+        <p>Notice that these are not the same summary with different titles. Each role gets different priorities.</p>
+      </div>
+
+      <div class="brief-tabs">
+        {% for role, brief in result.briefs.items() %}
+        <details class="brief" {% if loop.first %}open{% endif %}>
+          <summary>
+            <span>{{ brief.label }}</span>
+            <small>{{ brief.description }}</small>
+          </summary>
+          <div class="brief-body">
+            {% for section in brief.sections %}
+              <h3>{{ section[0] }}</h3>
+              <div class="markdownish">{{ section[1] }}</div>
+            {% endfor %}
+            <h3>Evidence Used</h3>
+            <ul>
+              {% for source in result.sources %}
+              <li><strong>[{{ source.id }}]</strong> {{ source.title }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </details>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>
