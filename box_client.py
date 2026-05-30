@@ -173,7 +173,7 @@ class BoxRestUploader:
                         "name": path.name,
                         "relative_path": rel,
                         "id": file_info.get("id"),
-                        "url": file_info.get("shared_link", {}).get("url") or box_file_url(file_info.get("id")),
+                        "url": (file_info.get("shared_link") or {}).get("url") or box_file_url(file_info.get("id")),
                     }
                 )
 
