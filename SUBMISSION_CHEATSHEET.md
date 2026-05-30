@@ -18,7 +18,7 @@ Teams often store project knowledge in one shared folder, but different stakehol
 
 ## Solution
 
-RoleBrief AI collects external evidence with Apify, combines it with internal notes, writes everything into a Box-style project memory, and uses Gemini to enhance audience-specific briefs plus a hackathon submission package. The deterministic local generator stays available as a fallback.
+RoleBrief AI collects external evidence with Apify, combines it with internal notes, writes everything into a Box-style project memory, and uses Gemini to enhance audience-specific briefs plus a hackathon submission package, backed by a deterministic local generator.
 
 ## Why Box
 
@@ -30,7 +30,7 @@ Apify is the web evidence layer. It can crawl external URLs, normalize web conte
 
 ## Why AI
 
-Gemini translates the same evidence into role-specific decisions, not one generic summary. The app records which roles were Gemini-enhanced and which used fallback.
+Gemini translates the same evidence into role-specific decisions, not one generic summary. The app records which roles were Gemini-enhanced.
 
 ## Key differentiator
 

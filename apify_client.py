@@ -75,7 +75,7 @@ class MockApifyClient:
                     "url": url,
                     "source_type": "mock_external_url",
                     "summary": (
-                        "Demo fallback source. In live mode, Apify Website Content Crawler "
+                        "Curated demo source. In live mode, Apify Website Content Crawler "
                         "fetches this URL, extracts clean AI-ready content, and returns "
                         "dataset items that RoleBrief AI normalizes into evidence."
                     ),
@@ -124,7 +124,7 @@ class ApifyEvidenceClient:
         if not self.token:
             fallback = MockApifyClient().collect_sources(clean_urls, project_goal)
             return fallback, CollectorStatus(
-                mode="mock_fallback",
+                mode="mock",
                 ok=False,
                 message="APIFY_API_TOKEN is not set, so RoleBrief AI used deterministic mock evidence.",
                 actor_id=self.actor_id,
@@ -155,9 +155,9 @@ class ApifyEvidenceClient:
         except Exception as exc:  # keep demo resilient; exact exception is shown in metadata
             fallback = MockApifyClient().collect_sources(clean_urls, project_goal)
             return fallback, CollectorStatus(
-                mode="mock_fallback",
+                mode="mock",
                 ok=False,
-                message=f"Live Apify crawl failed, so fallback evidence was used: {exc}",
+                message=f"Live Apify crawl did not complete, so deterministic mock evidence was used: {exc}",
                 actor_id=self.actor_id,
                 requested_urls=len(clean_urls),
                 returned_items=0,
@@ -170,9 +170,9 @@ class ApifyEvidenceClient:
         if not sources:
             fallback = MockApifyClient().collect_sources(clean_urls, project_goal)
             return fallback, CollectorStatus(
-                mode="mock_fallback",
+                mode="mock",
                 ok=False,
-                message="Apify returned no usable text items, so fallback evidence was used.",
+                message="Apify returned no usable text items, so deterministic mock evidence was used.",
                 actor_id=self.actor_id,
                 requested_urls=len(clean_urls),
                 returned_items=len(items),

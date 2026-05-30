@@ -40,7 +40,7 @@ ROLE_PROFILES = {
     "engineer": {
         "primary_question": "Can we build this reliably before the demo and explain the system boundary?",
         "deliverable": "Architecture and implementation brief",
-        "cares_about": ["APIs", "data contracts", "fallbacks", "errors", "security", "deployment"],
+        "cares_about": ["APIs", "data contracts", "reliability", "errors", "security", "deployment"],
         "avoid": "Do not sell vague business value without implementation path.",
     },
     "pm": {
@@ -327,7 +327,7 @@ def _role_sections(role: str, project: dict, sources: list[dict], evidence_map: 
                 "Apify layer: crawls external pages and normalizes them into source objects with title, URL, type, summary, key points, and excerpt.",
                 "Intelligence layer: evidence map + role strategy generate audience-specific Markdown briefs.",
                 "Box layer: stores `/sources`, `/role_briefs`, and `/metadata` so the run is inspectable and shareable.",
-                "Fallback layer: mock Apify, local Box mirror, and deterministic generation keep the live demo stable even without API keys.",
+                "Reliability layer: deterministic generation and a local Box mirror keep the live demo stable and repeatable.",
             ])),
             ("Data contract", _bullet_list([
                 "`source.id`: stable evidence reference used inside reports.",
@@ -339,7 +339,7 @@ def _role_sections(role: str, project: dict, sources: list[dict], evidence_map: 
             ("Implementation risk and mitigation", _bullet_list([
                 "Crawler noise → keep crawl depth low for demo and store raw source snapshots for review.",
                 "Generic outputs → generate from role profiles and role-specific evidence filters.",
-                "Token failure → local fallback should still produce the full run package.",
+                "Token availability → deterministic generation still produces the full run package.",
                 "Box visibility risk → show Box sync status and generated folder tree in the result page.",
             ])),
             _evidence_section(role, sources, evidence_map),
@@ -407,7 +407,7 @@ def _role_sections(role: str, project: dict, sources: list[dict], evidence_map: 
             ("Customer pain story", "A team has sponsor rules, product docs, competitor pages, internal notes, and technical plans scattered everywhere. The engineer wants APIs, the PM wants scope, the executive wants strategy, the legal reviewer wants provenance, and the judge wants a memorable pitch. RoleBrief AI turns that mess into a shared Box project memory plus role-specific outputs."),
             ("Demo talk track", _numbered_list([
                 "Start with the messy project: notes plus URLs.",
-                "Show Apify evidence collection or the fallback evidence status.",
+                "Show the Apify evidence collection status.",
                 "Show the generated Box memory layout.",
                 "Open Engineer vs Executive vs Judge outputs to prove role differentiation.",
                 "End on the Judge Brief: this is the pitch pack the team can use immediately.",
@@ -589,7 +589,7 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
             "sections": sections,
             "markdown": markdown,
             "draft_markdown": draft_markdown,
-            "generation_mode": "gemini" if llm_status.get("enhanced") else "deterministic_fallback",
+            "generation_mode": "gemini" if llm_status.get("enhanced") else "deterministic_local",
             "llm_status": llm_status,
         }
 
@@ -618,7 +618,7 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
         "sponsor_story": {
             "box": "Trusted project memory for source snapshots, generated briefs, evidence maps, and manifest metadata.",
             "apify": "External evidence collection from live web pages and docs.",
-            "ai": "Audience-aware translation into role-specific reports and judge-ready pitch artifacts, with optional Gemini enhancement and deterministic fallback.",
+            "ai": "Audience-aware translation into role-specific reports and judge-ready pitch artifacts, with optional Gemini enhancement on top of a deterministic local engine.",
         },
     }
 
@@ -649,10 +649,10 @@ def calculate_sponsor_fit(project: dict, sources: list[dict], roles: list[str], 
         apify_why = "Live Apify crawler output is normalized into evidence sources."
     elif mock_sources or apify_doc_sources:
         apify_score = 28
-        apify_why = "The Apify evidence path is visible and mock fallback keeps the demo stable."
+        apify_why = "The Apify evidence path is visible and keeps the demo stable."
     elif sources:
         apify_score = 20
-        apify_why = "Sources exist, but live or mock external collection should be shown more clearly."
+        apify_why = "Sources exist, but external collection should be shown more clearly."
     else:
         apify_score = 10
         apify_why = "Add external URLs or sample sources to make the Apify story visible."

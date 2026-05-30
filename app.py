@@ -166,7 +166,6 @@ def write_local_box_run(run_id: str, result: dict) -> Path:
     if showcase:
         box.write_markdown(project_folder, "task_inbox/00_box_task_inbox.md", showcase.get("task_inbox_markdown", ""))
         box.write_markdown(project_folder, "task_inbox/01_role_router.md", showcase.get("role_router_markdown", ""))
-        box.write_markdown(project_folder, "task_inbox/02_demo_rescue_cards.md", showcase.get("rescue_cards_markdown", ""))
 
     box.write_json(project_folder, "metadata/manifest.json", result["manifest"])
     box.write_json(project_folder, "metadata/sponsor_fit.json", result["sponsor_fit"])
@@ -179,7 +178,6 @@ def write_local_box_run(run_id: str, result: dict) -> Path:
     if result.get("showcase_features"):
         box.write_json(project_folder, "metadata/task_router.json", result["showcase_features"].get("task_inbox", {}))
         box.write_json(project_folder, "metadata/showcase_readiness.json", result["showcase_features"].get("showcase_readiness", {}))
-        box.write_json(project_folder, "metadata/rescue_cards.json", result["showcase_features"].get("rescue_cards", []))
     if "box_sync_status" in result:
         box.write_json(project_folder, "metadata/box_sync.json", result["box_sync_status"])
     box.write_json(run_root, "result.json", result)
@@ -228,12 +226,11 @@ def run_project(project: dict) -> str:
         f"submission_package/{filename}"
         for filename in result["hackathon_package"]["docs"].keys()
     ]
-    # Final showcase layer: routed task inbox, readiness score, and rescue cards.
+    # Final showcase layer: routed task inbox and readiness score.
     result["showcase_features"] = generate_showcase_features(result)
     result["manifest"]["outputs"]["task_inbox"] = [
         "task_inbox/00_box_task_inbox.md",
         "task_inbox/01_role_router.md",
-        "task_inbox/02_demo_rescue_cards.md",
     ]
     for metadata_path in [
         "metadata/evidence_collection.json",
@@ -244,7 +241,6 @@ def run_project(project: dict) -> str:
         "metadata/demo_checklist.json",
         "metadata/task_router.json",
         "metadata/showcase_readiness.json",
-        "metadata/rescue_cards.json",
     ]:
         if metadata_path not in result["manifest"]["outputs"]["metadata"]:
             result["manifest"]["outputs"]["metadata"].append(metadata_path)

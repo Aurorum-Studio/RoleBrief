@@ -20,8 +20,7 @@
         <span class="pill">Box = trusted memory</span>
         <span class="pill">Apify = live web evidence</span>
         <span class="pill">AI = Gemini role translator</span>
-        <span class="pill">Fallback = deterministic demo safety</span>
-        <span class="pill">Showcase layer = task inbox + rescue cards</span>
+        <span class="pill">Showcase layer = routed task inbox</span>
       </div>
       <div class="hero-actions">
         <a class="button primary" href="{{ url_for('demo') }}">Run sample demo</a>
@@ -61,15 +60,15 @@
       <article class="card">
         <h2>Why Apify</h2>
         <p>
-          Apify can crawl external URLs, normalize web evidence, and feed the same role-brief pipeline.
-          Mock fallback keeps the demo stable.
+          Apify can crawl external URLs, normalize web evidence, and feed the same role-brief pipeline
+          for a stable, repeatable demo.
         </p>
       </article>
       <article class="card">
         <h2>Why Gemini</h2>
         <p>
           Gemini upgrades the local structured draft into a more natural role-specific brief,
-          while the deterministic engine remains as a safe fallback.
+          built only from the collected evidence.
         </p>
       </article>
     </section>
@@ -114,7 +113,7 @@
           </label>
           <p class="field-hint">
             Requires <code>USE_REAL_APIFY=true</code> or this checkbox, plus <code>APIFY_API_TOKEN</code> in <code>.env</code>.
-            If the crawl fails, the app automatically falls back to mock evidence so the demo still works.
+            This crawls the external URLs and normalizes them into evidence for the role briefs.
           </p>
         </fieldset>
 
@@ -142,7 +141,7 @@
           </label>
           <p class="field-hint">
             Requires <code>USE_REAL_BOX=true</code> or this checkbox, plus <code>BOX_DEVELOPER_TOKEN</code> in <code>.env</code>.
-            The local Box-style mirror is always written first, so the demo still works if Box upload fails.
+            The local Box-style mirror is always written first, then uploaded to real Box.
           </p>
         </fieldset>
 
@@ -155,7 +154,7 @@
           </label>
           <p class="field-hint">
             Requires <code>USE_REAL_LLM=true</code> or this checkbox, plus <code>GEMINI_API_KEY</code> in <code>.env</code>.
-            Gemini rewrites the deterministic draft using only the collected evidence. If it fails, the local fallback brief is kept.
+            Gemini rewrites the deterministic draft using only the collected evidence.
           </p>
         </fieldset>
 

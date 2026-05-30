@@ -39,7 +39,7 @@ def test_generator():
     assert "metadata/evidence_map.json" in result["manifest"]["outputs"]["metadata"]
     assert "metadata/llm_generation.json" in result["manifest"]["outputs"]["metadata"]
     assert result["llm_generation"]["enabled"] is False
-    assert result["briefs"]["engineer"]["generation_mode"] == "deterministic_fallback"
+    assert result["briefs"]["engineer"]["generation_mode"] == "deterministic_local"
     assert "data contract" in result["briefs"]["engineer"]["markdown"].lower()
     assert "decision memo" in result["briefs"]["executive"]["markdown"].lower()
     assert "three-minute demo choreography" in result["briefs"]["judge"]["markdown"].lower()
@@ -61,7 +61,7 @@ def test_gemini_missing_key_fallback():
     assert result["llm_generation"]["enabled"] is True
     assert result["llm_generation"]["provider"] == "gemini"
     assert result["llm_generation"]["fallback_roles"] == ["engineer"]
-    assert result["briefs"]["engineer"]["generation_mode"] == "deterministic_fallback"
+    assert result["briefs"]["engineer"]["generation_mode"] == "deterministic_local"
     assert "GEMINI_API_KEY" in result["llm_generation"]["warnings"][0]
 
 
@@ -101,8 +101,7 @@ def test_showcase_features():
     assert showcase["task_inbox"]["task_count"] >= 12
     assert showcase["showcase_readiness"]["score"] >= 80
     assert "Box Task Inbox" in showcase["task_inbox_markdown"]
-    assert "Demo Rescue Cards" in showcase["rescue_cards_markdown"]
-    assert len(showcase["rescue_cards"]) >= 3
+    assert "rescue_cards" not in showcase
 
 
 def test_mock_apify_client():
@@ -168,7 +167,7 @@ def test_box_missing_token_status():
         (local / "metadata").mkdir(parents=True)
         (local / "metadata/manifest.json").write_text('{"ok": true}', encoding="utf-8")
         status = BoxRestUploader(token="", use_live=True).sync_directory(local, "Smoke Project", "abc123").to_dict()
-        assert status["mode"] == "local_fallback"
+        assert status["mode"] == "local_mirror"
         assert status["ok"] is False
         assert "BOX_DEVELOPER_TOKEN" in status["message"]
 

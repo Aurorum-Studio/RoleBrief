@@ -180,8 +180,8 @@ def build_devpost_description(result: dict) -> str:
 
     ## How we built it
     - Flask web app for the prototype UI.
-    - Apify Website Content Crawler path for live external evidence collection, with deterministic mock fallback.
-    - Box REST upload path for generated sources, reports, metadata, and submission package, with local fallback.
+    - Apify Website Content Crawler path for live external evidence collection.
+    - Box REST upload path for generated sources, reports, metadata, and submission package.
     - Deterministic role-aware intelligence generator for stable hackathon demos.
 
     ## Best use of Box
@@ -216,7 +216,7 @@ def build_three_minute_script(result: dict) -> str:
     ## 0:45–1:20 — Input and evidence
     Show the homepage. Point to project goal, external URLs, internal notes, and role selection. Click the sample demo or run a small live crawl.
 
-    Say: "This can run in live Apify mode, but the demo also has a deterministic fallback so the project remains presentable even if a token or network call fails."
+    Say: "This runs with curated evidence for a fast, repeatable demo, and can also run in live Apify mode."
 
     ## 1:20–1:55 — Box memory
     Show Evidence Collection Status and Box Sync Status. Then show the generated folder tree.
@@ -291,7 +291,7 @@ def build_final_roadmap(result: dict) -> str:
 
     ## Hackathon prototype scope
     - One project per run.
-    - External URL collection through Apify or deterministic mock fallback.
+    - External URL collection through Apify, with curated sample evidence for demos.
     - Local Box-style memory plus optional live Box upload.
     - Role-specific Markdown reports.
     - Evidence map, role matrix, judge pitch pack, and submission package.

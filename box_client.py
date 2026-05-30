@@ -119,9 +119,9 @@ class BoxRestUploader:
 
         if not self.token:
             return BoxSyncStatus(
-                mode="local_fallback",
+                mode="local_mirror",
                 ok=False,
-                message="USE_REAL_BOX=true, but BOX_DEVELOPER_TOKEN is missing. The local Box mirror was kept as fallback.",
+                message="USE_REAL_BOX=true, but BOX_DEVELOPER_TOKEN is missing. The local Box mirror was kept.",
                 parent_folder_id=self.parent_folder_id,
                 fallback_used=True,
                 warnings=["Create a Box app developer token or use OAuth/JWT, then set BOX_DEVELOPER_TOKEN in .env."],
@@ -129,7 +129,7 @@ class BoxRestUploader:
 
         if not local_project_folder.exists():
             return BoxSyncStatus(
-                mode="local_fallback",
+                mode="local_mirror",
                 ok=False,
                 message="The local project memory folder does not exist, so nothing was uploaded to Box.",
                 parent_folder_id=self.parent_folder_id,
@@ -197,9 +197,9 @@ class BoxRestUploader:
             )
         except Exception as exc:
             return BoxSyncStatus(
-                mode="local_fallback",
+                mode="local_mirror",
                 ok=False,
-                message=f"Live Box upload failed, so the local Box mirror was kept as fallback: {exc}",
+                message=f"Live Box upload did not complete, so the local Box mirror was kept: {exc}",
                 parent_folder_id=self.parent_folder_id,
                 fallback_used=True,
                 warnings=["Check token scope, parent folder access, app authorization, and Box admin settings."],

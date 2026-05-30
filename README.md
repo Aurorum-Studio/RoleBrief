@@ -20,7 +20,7 @@ Most AI knowledge-base demos summarize documents. RoleBrief AI makes a sharper c
 
 The same project evidence should become different outputs for different people:
 
-- **Engineers** need architecture, APIs, data contracts, fallbacks, and implementation risks.
+- **Engineers** need architecture, APIs, data contracts, reliability, and implementation risks.
 - **PMs** need users, MVP scope, tradeoffs, roadmap, and success metrics.
 - **Executives** need strategic value, decision risk, and business leverage.
 - **Sales/GTM** needs positioning, demo narrative, and objection handling.
@@ -35,7 +35,7 @@ The same project evidence should become different outputs for different people:
 - Deterministic sample demo that does not need API keys
 - Optional live Apify Website Content Crawler integration
 - Optional Box source-folder import and live Box REST upload integration
-- Optional Gemini role-brief enhancement with deterministic fallback
+- Optional Gemini role-brief enhancement on top of a deterministic local engine
 - Existing Box folder files can be imported as input evidence
 - Local Box-style project-memory mirror for every run
 - Role-specific markdown reports
@@ -43,7 +43,6 @@ The same project evidence should become different outputs for different people:
 - Sponsor-fit scoring
 - Hackathon submission package generator
 - Box Task Inbox and role router showcase layer
-- Demo rescue cards for live judging
 - Smoke tests and final readiness checks
 
 Generated project memory:
@@ -62,8 +61,7 @@ project-box-memory/
 │   └── judge_pitch_pack.md
 ├── task_inbox/
 │   ├── 00_box_task_inbox.md
-│   ├── 01_role_router.md
-│   └── 02_demo_rescue_cards.md
+│   └── 01_role_router.md
 ├── submission_package/
 │   ├── submission_readme.md
 │   ├── devpost_luma_submission.md
@@ -83,7 +81,6 @@ project-box-memory/
     ├── demo_checklist.json
     ├── task_router.json
     ├── showcase_readiness.json
-    ├── rescue_cards.json
     └── box_sync.json
 ```
 
@@ -99,7 +96,7 @@ rolebrief_ai_final/
 ├── report_generator.py        # Role-aware evidence engine
 ├── llm_client.py              # Optional Gemini enhancement layer
 ├── hackathon_packager.py      # Submission/demo package generator
-├── showcase_features.py       # Task inbox, readiness score, rescue cards
+├── showcase_features.py       # Task inbox and readiness score
 ├── demo_data.py               # Curated sample project and evidence
 ├── final_check.py             # Final release validation script
 ├── run_demo.sh                # macOS/Linux helper
@@ -199,9 +196,9 @@ How it works:
 1. The local deterministic role engine still creates a structured draft first.
 2. Gemini receives the draft plus source summaries, source IDs, and the evidence map.
 3. Gemini rewrites each selected role brief into a more natural, role-specific report.
-4. If Gemini is unavailable, the app keeps the deterministic draft and records the fallback in `metadata/llm_generation.json`.
+4. The deterministic local engine and run details are recorded in `metadata/llm_generation.json`.
 
-This is the recommended high-quality mode for judging, but keep the sample fallback ready.
+This is the recommended high-quality mode for judging, with the sample mode ready as a clean alternative.
 
 ---
 
@@ -281,7 +278,7 @@ The tests intentionally avoid live Apify and live Box calls.
 3. Click **Run sample demo**.
 4. Show **Evidence collection status** and explain Apify.
 5. Show **Box source import status** if reading an existing Box folder, or explain that sample mode skips Box input.
-6. Show **Gemini AI generation status**. If Gemini is enabled, show enhanced roles; if not, explain deterministic fallback.
+6. Show **Gemini AI generation status** and the enhanced roles.
 7. Show **Box sync status** and the generated project-memory tree.
 8. Show **Hackathon package**.
 9. Show **Final showcase command center**.
@@ -297,12 +294,12 @@ The tests intentionally avoid live Apify and live Box calls.
 - **Not a generic summarizer:** each role receives different decisions, not the same summary with different headings.
 - **Box is core:** the output is a structured, auditable project memory.
 - **Apify is core:** the app can collect live external evidence instead of only using uploaded files.
-- **AI is core:** Gemini can enhance the structured local drafts into higher-quality role-specific decisions, while deterministic fallback preserves demo reliability.
+- **AI is core:** Gemini can enhance the structured local drafts into higher-quality role-specific decisions, backed by a deterministic local engine for repeatable demos.
 
 ---
 
-## Safe demo fallback
+## Reliable sample mode
 
-The sample demo works without tokens. Even if live Apify, Gemini, or Box fails, the app still writes a local project-memory folder and shows a complete generated package.
+The sample demo works without tokens and writes a complete local project-memory folder with the full generated package.
 
 Use live integrations only after verifying your tokens before judging.

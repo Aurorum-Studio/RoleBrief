@@ -1,10 +1,9 @@
 """Showcase features for RoleBrief AI.
 
 The showcase layer deliberately avoids destabilizing the Box/Apify integrations. It adds
-judge-facing product polish: a Box-style task inbox, sponsor rescue cards, and a
-showcase readiness score. These artifacts are generated from the same result
-object and are saved into the project-memory folder so they can be uploaded to
-Box by the existing sync path.
+judge-facing product polish: a Box-style task inbox and a showcase readiness score.
+These artifacts are generated from the same result object and are saved into the
+project-memory folder so they can be uploaded to Box by the existing sync path.
 """
 
 from __future__ import annotations
@@ -17,7 +16,7 @@ import re
 ROLE_TASK_TEMPLATES = {
     "engineer": [
         "Confirm the integration boundary between Apify collection, report generation, and Box export.",
-        "Prepare a one-slide architecture explanation with fallback behavior and local demo mode.",
+        "Prepare a one-slide architecture explanation with the local demo mode.",
         "Verify that generated artifacts are deterministic enough for judging.",
     ],
     "pm": [
@@ -259,48 +258,12 @@ def build_showcase_readiness(result: dict, task_inbox: dict) -> dict:
     }
 
 
-def build_rescue_cards(result: dict) -> list[dict]:
-    """Short cards for common judge or live-demo failure moments."""
-    return [
-        {
-            "trigger": "Box already has AI. Why is this different?",
-            "answer": "Box AI understands content inside Box. RoleBrief AI brings external Apify evidence into the project memory first, then generates role-specific decision documents.",
-        },
-        {
-            "trigger": "Live Apify crawl is slow or blocked.",
-            "answer": "Switch to curated sample mode and explain that the pipeline has deterministic fallback so the judging demo remains reliable.",
-        },
-        {
-            "trigger": "The judge asks what is stored in Box.",
-            "answer": "Show sources, role_briefs, task_inbox, submission_package, and metadata. The output is a reviewable project memory, not a temporary chat response.",
-        },
-        {
-            "trigger": "The judge asks who would use this.",
-            "answer": "Cross-functional project teams: engineering, product, GTM, legal, leadership, and hackathon teams that need different versions of the same project truth.",
-        },
-    ]
-
-
-def rescue_cards_markdown(cards: list[dict]) -> str:
-    return dedent(
-        """\
-        # Demo Rescue Cards
-
-        Use these if the live demo or judging conversation turns sideways.
-
-        """
-    ) + "\n\n".join(f"## {card['trigger']}\n\n{card['answer']}" for card in cards)
-
-
 def generate_showcase_features(result: dict) -> dict:
     task_inbox = build_task_inbox(result)
     readiness = build_showcase_readiness(result, task_inbox)
-    rescue_cards = build_rescue_cards(result)
     return {
         "task_inbox": task_inbox,
         "task_inbox_markdown": task_inbox_markdown(task_inbox, result),
         "role_router_markdown": role_router_markdown(task_inbox, result),
         "showcase_readiness": readiness,
-        "rescue_cards": rescue_cards,
-        "rescue_cards_markdown": rescue_cards_markdown(rescue_cards),
     }

@@ -92,7 +92,7 @@ class GeminiEnhancer(RoleBriefEnhancer):
         self.max_source_chars = int(os.getenv("LLM_MAX_SOURCE_CHARS", "900") or "900")
         super().__init__(enabled=True, provider="gemini", model=self.model, api_key_present=bool(self.api_key))
         if not self.api_key:
-            self.state.warnings.append("USE_REAL_LLM is enabled but GEMINI_API_KEY is missing; local fallback will be used.")
+            self.state.warnings.append("USE_REAL_LLM is enabled but GEMINI_API_KEY is missing; using the deterministic local brief.")
 
     def enhance(
         self,
@@ -284,5 +284,5 @@ def create_llm_enhancer(use_live: bool | None = None) -> RoleBriefEnhancer:
     if provider == "gemini":
         return GeminiEnhancer()
     enhancer = RoleBriefEnhancer(enabled=True, provider=provider, model=None, api_key_present=False)
-    enhancer.state.warnings.append(f"Unsupported LLM_PROVIDER={provider!r}; local fallback will be used.")
+    enhancer.state.warnings.append(f"Unsupported LLM_PROVIDER={provider!r}; using the deterministic local brief.")
     return enhancer
