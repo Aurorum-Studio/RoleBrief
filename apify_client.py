@@ -1,7 +1,7 @@
 """Apify evidence collection for RoleBrief AI.
 
-Batch 2 adds a real Apify REST integration while keeping the deterministic
-mock collector from Batch 1. The rest of the app receives the same normalized
+This module provides live Apify REST integration while keeping the deterministic
+mock collector used for safe demos. The rest of the app receives the same normalized
 source-object contract either way:
 
 {
@@ -81,7 +81,7 @@ class MockApifyClient:
                     ),
                     "key_points": [
                         f"Use this source to support the project goal: {project_goal[:110]}...",
-                        "Batch 2 can call the real Apify API when USE_REAL_APIFY=true and APIFY_API_TOKEN is set.",
+                        "Live Apify can run when USE_REAL_APIFY=true and APIFY_API_TOKEN is set.",
                         "The report generator treats mock and live sources through the same contract.",
                     ],
                     "extracted_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",

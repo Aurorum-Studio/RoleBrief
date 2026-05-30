@@ -18,6 +18,8 @@ from report_generator import (
     generate_role_briefs,
     source_to_markdown,
 )
+from hackathon_packager import generate_hackathon_package
+from showcase_features import generate_showcase_features
 
 load_dotenv()
 
@@ -56,7 +58,7 @@ def build_project_from_form(form) -> dict:
 def collect_sources(project: dict) -> tuple[list[dict], dict]:
     """Collect external and internal evidence.
 
-    Batch 2 can use the real Apify REST API, but every path returns normalized
+    The live Apify path can use the real REST API, but every path returns normalized
     source objects so the report generator and Box memory stay stable.
     """
     if project.get("_use_sample_sources"):
@@ -104,7 +106,7 @@ def collect_sources(project: dict) -> tuple[list[dict], dict]:
                 "summary": project["internal_notes"][:650],
                 "key_points": [
                     "Internal notes are treated as private project context.",
-                    "Batch 3 can store this source inside a real Box folder.",
+                    "Live Box mode can store this source inside a real Box folder.",
                     "Role briefs combine internal notes with external evidence.",
                 ],
                 "collector": "user_input",
@@ -127,9 +129,35 @@ def write_local_box_run(run_id: str, result: dict) -> Path:
     for role, brief in result["briefs"].items():
         box.write_markdown(project_folder, f"role_briefs/{role}_brief.md", brief["markdown"])
 
+    # Role-differentiation artifacts make
+    # the project look less like a generic summarizer and more like a product.
+    box.write_markdown(project_folder, "role_briefs/_role_comparison_matrix.md", result["role_matrix_markdown"])
+    box.write_markdown(project_folder, "role_briefs/judge_pitch_pack.md", result["judge_pitch_pack"])
+
+    # The final release adds hackathon packaging artifacts: the docs a team can
+    # copy directly into GitHub, Devpost/Luma, and the judging presentation.
+    for filename, markdown in result.get("hackathon_package", {}).get("docs", {}).items():
+        box.write_markdown(project_folder, f"submission_package/{filename}", markdown)
+
+    # The final release adds judge-facing showcase artifacts. They are intentionally
+    # written as normal Box project-memory files so the existing Box sync path
+    # uploads them without introducing a risky new integration.
+    showcase = result.get("showcase_features", {})
+    if showcase:
+        box.write_markdown(project_folder, "task_inbox/00_box_task_inbox.md", showcase.get("task_inbox_markdown", ""))
+        box.write_markdown(project_folder, "task_inbox/01_role_router.md", showcase.get("role_router_markdown", ""))
+        box.write_markdown(project_folder, "task_inbox/02_demo_rescue_cards.md", showcase.get("rescue_cards_markdown", ""))
+
     box.write_json(project_folder, "metadata/manifest.json", result["manifest"])
     box.write_json(project_folder, "metadata/sponsor_fit.json", result["sponsor_fit"])
+    box.write_json(project_folder, "metadata/evidence_map.json", result["evidence_map"])
+    box.write_json(project_folder, "metadata/role_strategy.json", result["role_strategy"])
     box.write_json(project_folder, "metadata/evidence_collection.json", result["collector_status"])
+    box.write_json(project_folder, "metadata/demo_checklist.json", result.get("hackathon_package", {}).get("checklist", {}))
+    if result.get("showcase_features"):
+        box.write_json(project_folder, "metadata/task_router.json", result["showcase_features"].get("task_inbox", {}))
+        box.write_json(project_folder, "metadata/showcase_readiness.json", result["showcase_features"].get("showcase_readiness", {}))
+        box.write_json(project_folder, "metadata/rescue_cards.json", result["showcase_features"].get("rescue_cards", []))
     if "box_sync_status" in result:
         box.write_json(project_folder, "metadata/box_sync.json", result["box_sync_status"])
     box.write_json(run_root, "result.json", result)
@@ -167,8 +195,30 @@ def run_project(project: dict) -> str:
     sources, collector_status = collect_sources(project)
     result = generate_role_briefs(project, sources, project["roles"])
     result["collector_status"] = collector_status
-    if "metadata/evidence_collection.json" not in result["manifest"]["outputs"]["metadata"]:
-        result["manifest"]["outputs"]["metadata"].append("metadata/evidence_collection.json")
+    # Final release turns the generated analysis into a submit-ready package.
+    result["hackathon_package"] = generate_hackathon_package(result)
+    result["manifest"]["outputs"]["submission_package"] = [
+        f"submission_package/{filename}"
+        for filename in result["hackathon_package"]["docs"].keys()
+    ]
+    # Final showcase layer: routed task inbox, readiness score, and rescue cards.
+    result["showcase_features"] = generate_showcase_features(result)
+    result["manifest"]["outputs"]["task_inbox"] = [
+        "task_inbox/00_box_task_inbox.md",
+        "task_inbox/01_role_router.md",
+        "task_inbox/02_demo_rescue_cards.md",
+    ]
+    for metadata_path in [
+        "metadata/evidence_collection.json",
+        "metadata/evidence_map.json",
+        "metadata/role_strategy.json",
+        "metadata/demo_checklist.json",
+        "metadata/task_router.json",
+        "metadata/showcase_readiness.json",
+        "metadata/rescue_cards.json",
+    ]:
+        if metadata_path not in result["manifest"]["outputs"]["metadata"]:
+            result["manifest"]["outputs"]["metadata"].append(metadata_path)
     result["manifest"]["collector_status"] = collector_status
     run_id = uuid.uuid4().hex[:10]
     project_folder = write_local_box_run(run_id, result)

@@ -1,9 +1,8 @@
-"""Demo data for RoleBrief AI Batch 1.
+"""Curated demo data for RoleBrief AI.
 
-Batch 1 is intentionally local-first so the project can be demoed even before
-Box / Apify credentials are configured. The data below simulates the kind of
-evidence Apify would collect and the kind of project notes a team would keep in
-Box.
+The sample project is intentionally strong enough for a no-token hackathon demo.
+It simulates event rules, Box docs, Apify docs, and internal project notes so the
+role-specific intelligence layer can show useful outputs even offline.
 """
 
 SAMPLE_PROJECT = {

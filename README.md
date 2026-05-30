@@ -1,83 +1,114 @@
-# RoleBrief AI — Batch 3
+# RoleBrief AI — Final Hackathon Release
 
 **One project. Many audiences.**
 
-RoleBrief AI turns messy project context into role-specific project briefs. Batch 3 adds the real Box export layer: after the app generates sources, role briefs, and metadata locally, it can upload the same project-memory tree into a real Box folder.
+RoleBrief AI turns messy project notes and external web evidence into role-specific project intelligence. It collects external evidence with Apify, stores sources and generated artifacts as a Box project memory, and produces different reports for engineers, PMs, executives, sales/GTM, legal/compliance, and hackathon judges.
 
 Core story:
 
 > **Box is the memory. Apify is the eyes. AI is the translator.**
 
-Batch 3 still preserves deterministic fallback behavior. If the Box token is missing or Box upload fails, the local Box-style mirror is still created and downloadable, so the hackathon demo does not break on stage.
+The project is intentionally built for a hackathon demo: it has a stable no-token sample mode, optional live Apify crawling, optional live Box export, and generated judging/submission materials.
 
 ---
 
-## Why this is designed for a hackathon
+## Why this is not just another summarizer
 
 Most AI knowledge-base demos summarize documents. RoleBrief AI makes a sharper claim:
 
-> Companies do not only have a documentation problem. They have an audience mismatch problem.
+> Teams do not only have a documentation problem. They have an audience mismatch problem.
 
 The same project evidence should become different outputs for different people:
 
-- Engineers need architecture, APIs, implementation risks, and next steps.
-- PMs need users, MVP scope, roadmap, and success metrics.
-- Executives need strategic value and decision risk.
-- Sales teams need positioning, demo story, and objections.
-- Legal/compliance teams need provenance, privacy, and auditability.
-- Hackathon judges need sponsor fit and a clear demo path.
-
-Batch 3 makes the Box sponsor usage real: every generated source snapshot, role brief, manifest, sponsor-fit file, evidence status file, and Box sync file can be written to a real Box folder.
+- **Engineers** need architecture, APIs, data contracts, fallbacks, and implementation risks.
+- **PMs** need users, MVP scope, tradeoffs, roadmap, and success metrics.
+- **Executives** need strategic value, decision risk, and business leverage.
+- **Sales/GTM** needs positioning, demo narrative, and objection handling.
+- **Legal/compliance** needs provenance, privacy, access control, and auditability.
+- **Judges** need sponsor fit, demo clarity, and a memorable pitch.
 
 ---
 
-## Batch 3 features
+## What the final release includes
 
-Batch 3 includes everything from Batch 2 plus:
+- Flask web app with a polished local demo flow
+- Deterministic sample demo that does not need API keys
+- Optional live Apify Website Content Crawler integration
+- Optional live Box REST upload integration
+- Local Box-style project-memory mirror for every run
+- Role-specific markdown reports
+- Evidence map and source IDs
+- Sponsor-fit scoring
+- Hackathon submission package generator
+- Box Task Inbox and role router showcase layer
+- Demo rescue cards for live judging
+- Smoke tests and final readiness checks
 
-- Real Box REST upload path using `BOX_DEVELOPER_TOKEN`
-- Configurable Box parent folder ID
-- Automatic Box folder creation per run
-- Subfolder creation for:
-  - `sources/`
-  - `role_briefs/`
-  - `metadata/`
-- Direct upload of generated Markdown and JSON artifacts
-- Optional shared link creation for the generated Box folder
-- Result page showing:
-  - Box mode
-  - created folder count
-  - uploaded file count
-  - parent folder ID
-  - generated Box folder link
-  - uploaded artifact list
-- `metadata/box_sync.json` saved locally and uploaded when live Box succeeds
-- Local mirror fallback when Box upload is disabled or fails
-- Updated smoke tests for Box-disabled and Box-missing-token fallback paths
+Generated project memory:
+
+```text
+project-box-memory/
+├── sources/
+├── role_briefs/
+│   ├── engineer_brief.md
+│   ├── pm_brief.md
+│   ├── executive_brief.md
+│   ├── sales_brief.md
+│   ├── legal_brief.md
+│   ├── judge_brief.md
+│   ├── _role_comparison_matrix.md
+│   └── judge_pitch_pack.md
+├── task_inbox/
+│   ├── 00_box_task_inbox.md
+│   ├── 01_role_router.md
+│   └── 02_demo_rescue_cards.md
+├── submission_package/
+│   ├── submission_readme.md
+│   ├── devpost_luma_submission.md
+│   ├── three_minute_demo_script.md
+│   ├── judge_qa_cheatsheet.md
+│   ├── sponsor_story.md
+│   ├── screenshot_checklist.md
+│   └── roadmap_and_scope.md
+└── metadata/
+    ├── manifest.json
+    ├── sponsor_fit.json
+    ├── evidence_map.json
+    ├── role_strategy.json
+    ├── evidence_collection.json
+    ├── demo_checklist.json
+    ├── task_router.json
+    ├── showcase_readiness.json
+    ├── rescue_cards.json
+    └── box_sync.json
+```
 
 ---
 
 ## Project structure
 
 ```text
-rolebrief_ai_batch3/
-├── app.py                  # Flask app and routes
-├── apify_client.py          # Mock + live Apify REST client
-├── box_client.py            # Local mirror + live Box REST uploader
-├── report_generator.py      # Role-specific report generator
-├── demo_data.py             # Curated sample project and evidence
+rolebrief_ai_final/
+├── app.py                    # Flask app and routes
+├── apify_client.py            # Mock + live Apify REST client
+├── box_client.py              # Local mirror + live Box REST uploader
+├── report_generator.py        # Role-aware evidence engine
+├── hackathon_packager.py      # Submission/demo package generator
+├── showcase_features.py       # Task inbox, readiness score, rescue cards
+├── demo_data.py               # Curated sample project and evidence
+├── final_check.py             # Final release validation script
+├── run_demo.sh                # macOS/Linux helper
+├── run_demo.ps1               # Windows PowerShell helper
 ├── requirements.txt
 ├── .env.example
-├── README.md
+├── FINAL_DEMO_GUIDE.md
+├── SUBMISSION_CHEATSHEET.md
+├── RELEASE_NOTES.md
 ├── smoke_test.py
 ├── templates/
-│   ├── index.html
-│   └── result.html
 ├── static/
-│   └── style.css
 ├── sample_data/
-│   └── sample_project.json
-└── output_runs/             # Created outputs appear here
+└── output_runs/               # Generated outputs appear here
 ```
 
 ---
@@ -87,7 +118,7 @@ rolebrief_ai_batch3/
 ### macOS / Linux
 
 ```bash
-cd rolebrief_ai_batch3
+cd rolebrief_ai_final
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -95,15 +126,27 @@ cp .env.example .env
 python app.py
 ```
 
+Or use the helper:
+
+```bash
+bash run_demo.sh
+```
+
 ### Windows PowerShell
 
 ```powershell
-cd rolebrief_ai_batch3
+cd rolebrief_ai_final
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy .env.example .env
 python app.py
+```
+
+Or use the helper:
+
+```powershell
+.\run_demo.ps1
 ```
 
 Open:
@@ -112,7 +155,7 @@ Open:
 http://127.0.0.1:5000
 ```
 
-Click **Run sample demo** for the cleanest no-token demo.
+Click **Run sample demo** for the safest judging path.
 
 ---
 
@@ -129,7 +172,7 @@ APIFY_MAX_CRAWL_DEPTH=0
 APIFY_TIMEOUT_SECONDS=180
 ```
 
-For hackathon demos, keep `APIFY_MAX_CRAWL_PAGES` small. The default depth is `0`, so it only crawls the submitted start URLs instead of recursively crawling a whole site.
+For a live demo, keep crawl scope small. A depth of `0` only crawls the submitted start URLs.
 
 ---
 
@@ -146,105 +189,62 @@ BOX_SHARED_LINK_ACCESS=open
 BOX_TIMEOUT_SECONDS=90
 ```
 
-Then restart:
-
-```bash
-python app.py
-```
-
-You can also leave `USE_REAL_BOX=false` and tick **Upload generated project memory to real Box** in the UI.
-
-### How to get a quick developer token
-
-For hackathon/demo use:
-
-1. Create or open a Box app in the Box Developer Console.
-2. Use a developer token for quick testing.
-3. Paste it into `.env` as `BOX_DEVELOPER_TOKEN`.
-4. Keep `BOX_PARENT_FOLDER_ID=0` to create the generated folder at the root of the token user's Box account, or copy a folder ID from a Box URL and use that as the parent.
-
-Developer tokens are temporary and are not the production auth path. For a production version, replace this with OAuth 2.0 or JWT/server-to-server auth.
+`BOX_PARENT_FOLDER_ID=0` writes to the root of the token user's Box account. For a production version, replace developer tokens with OAuth 2.0 or server-to-server auth.
 
 ---
 
-## Smoke test
+## Validation
+
+Run the deterministic smoke test:
 
 ```bash
 python smoke_test.py
 ```
 
-Expected output:
+Run the final release check:
+
+```bash
+python final_check.py
+```
+
+Expected output includes:
 
 ```text
 Smoke tests passed.
+Final release checks passed.
 ```
 
-The smoke test intentionally does not call the live Apify or Box APIs.
+The tests intentionally avoid live Apify and live Box calls.
 
 ---
 
-## Demo script for Batch 3
-
-### Safe demo path
+## Recommended 3-minute judging demo
 
 1. Open the homepage.
-2. Say: "RoleBrief AI solves audience mismatch in project documentation."
+2. Say: “Teams do not only have a documentation problem. They have an audience mismatch problem.”
 3. Click **Run sample demo**.
-4. Show the evidence collection status panel.
-5. Show the Box sync status panel.
-6. Show the local project-memory layout:
-   - `sources/`
-   - `role_briefs/`
-   - `metadata/manifest.json`
-   - `metadata/evidence_collection.json`
-   - `metadata/box_sync.json`
-7. Compare Engineer, Executive, and Judge briefs.
-8. Click **Download generated Box mirror**.
-
-### Live Box demo path
-
-1. Add `BOX_DEVELOPER_TOKEN` to `.env`.
-2. Set `USE_REAL_BOX=true`.
-3. Start the app.
-4. Click **Run sample demo** or create a custom project.
-5. Show that `Box sync status` says `box_live`.
-6. Click **Open generated Box folder**.
-7. In Box, show the generated subfolders and uploaded Markdown/JSON artifacts.
-8. Explain: "Apify gathers external evidence; Box stores the trusted project memory; RoleBrief AI translates it for each role."
+4. Show **Evidence collection status** and explain Apify.
+5. Show **Box sync status** and the generated project-memory tree.
+6. Show **Hackathon package**.
+7. Show **Final showcase command center**.
+8. Compare Engineer, Executive, and Judge briefs.
+9. Download the full showcase package.
+10. Close with: “Box is the memory. Apify is the eyes. AI is the translator.”
 
 ---
 
-## What Batch 3 intentionally does not do
+## Judge-facing positioning
 
-To preserve quality, Batch 3 only solves the Box export risk.
-
-It does not include:
-
-- production OAuth/JWT auth flow
-- large binary/chunked uploads
-- multi-user workspace
-- database
-- live RAG
-- background jobs
-- complex agent framework
-- LLM report generation
-
-Those are later-batch concerns.
+- **Not a Box AI clone:** Box AI understands content in Box; RoleBrief AI brings external web evidence into Box and packages it by audience.
+- **Not a generic summarizer:** each role receives different decisions, not the same summary with different headings.
+- **Box is core:** the output is a structured, auditable project memory.
+- **Apify is core:** the app can collect live external evidence instead of only using uploaded files.
+- **AI is core:** it translates evidence into role-specific decisions, tasks, and presentation-ready artifacts.
 
 ---
 
-## Batch 4 target
+## Safe demo fallback
 
-Batch 4 should improve the intelligence layer without changing the Box/Apify contracts:
+The sample demo works without tokens. Even if live Apify or Box fails, the app still writes a local project-memory folder and shows a complete generated package.
 
-- stronger role-specific prompting
-- optional OpenAI/LLM generation
-- more distinct Engineer / PM / Executive / Legal / Judge reports
-- evidence references inside each generated section
-- a sharper Judge Brief for hackathon presentation
-
----
-
-## Pitch line
-
-> RoleBrief AI turns one messy project folder into role-specific briefings for every stakeholder, using Apify to collect external evidence and Box to store the trusted project memory.
+Use live integrations only after verifying your tokens before judging.

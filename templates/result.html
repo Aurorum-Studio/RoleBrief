@@ -10,7 +10,7 @@
   <main class="page">
     <nav class="topbar">
       <a href="{{ url_for('index') }}">← New run</a>
-      <a href="{{ url_for('download_run', run_id=run_id) }}">Download generated Box mirror</a>
+      <a href="{{ url_for('download_run', run_id=run_id) }}">Download full showcase package</a>
     </nav>
 
     <section class="hero compact">
@@ -56,7 +56,7 @@
       <section class="panel no-margin">
         <div class="section-heading">
           <h2>Box sync status</h2>
-          <p>Batch 3 writes the same project memory locally and, when enabled, to real Box.</p>
+          <p>The final release writes the full project memory, hackathon-ready documents, and routed task-inbox artifacts locally and, when enabled, to real Box.</p>
         </div>
         {% set box_status = result.box_sync_status %}
         <div class="status-card {% if box_status.ok %}ok-card{% else %}warn-card{% endif %}">
@@ -83,10 +83,176 @@
       </section>
     </section>
 
+
+    <section class="two-panels">
+      <section class="panel no-margin">
+        <div class="section-heading">
+          <h2>Evidence health map</h2>
+          <p>The evidence layer keeps generated reports grounded in source IDs instead of unsupported AI prose.</p>
+        </div>
+        <div class="status-card ok-card">
+          <div>
+            <h3>{{ result.evidence_map.source_count }} sources</h3>
+            <p>{{ result.evidence_map.public_source_count }} public/external · {{ result.evidence_map.internal_source_count }} internal · {{ result.evidence_map.live_web_source_count }} live Apify</p>
+          </div>
+          <div class="status-metrics">
+            <span><strong>{{ result.evidence_map.top_claims|length }}</strong><small>Claims</small></span>
+            <span><strong>{{ result.evidence_map.missing_evidence|length }}</strong><small>Gaps</small></span>
+            <span><strong>{{ result.evidence_map.red_flags|length }}</strong><small>Flags</small></span>
+          </div>
+        </div>
+        {% if result.evidence_map.missing_evidence %}
+        <ul class="warning-list">
+          {% for item in result.evidence_map.missing_evidence %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </section>
+
+      <section class="panel no-margin">
+        <div class="section-heading">
+          <h2>Role strategy</h2>
+          <p>The product promise is different decisions for different audiences.</p>
+        </div>
+        <div class="role-strategy-list">
+          {% for row in result.role_strategy.roles[:4] %}
+          <article class="strategy-row">
+            <strong>{{ row.label }}</strong>
+            <span>{{ row.deliverable }}</span>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+    </section>
+
+
+    <section class="panel highlight-panel">
+      <div class="section-heading">
+        <h2>Hackathon package</h2>
+        <p>The final package converts each run into copy-ready submission material, routed task inboxes, and rescue cards so the demo feels like a product, not just generated prose.</p>
+      </div>
+      <div class="package-hero">
+        <div>
+          <div class="eyebrow">Final judging line</div>
+          <h3>{{ result.hackathon_package["closing_line"] }}</h3>
+          <p class="muted">{{ result.hackathon_package["one_liner"] }}</p>
+        </div>
+        <div class="status-metrics">
+          <span><strong>{{ result.hackathon_package["docs"]|length }}</strong><small>Docs</small></span>
+          <span><strong>{{ result.hackathon_package["checklist"]["recommended_demo_path"]|length }}</strong><small>Demo steps</small></span>
+          <span><strong>{{ result.hackathon_package["top_claims"]|length }}</strong><small>Claims</small></span>
+        </div>
+      </div>
+      <div class="package-grid">
+        {% for card in result.hackathon_package["display_cards"] %}
+        <article class="package-card">
+          <h3>{{ card.title }}</h3>
+          <code>{{ card.path }}</code>
+          <p>{{ card.why }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <details class="brief package-details">
+        <summary>
+          <span>Recommended 3-minute demo path</span>
+          <small>Use this exact sequence during judging.</small>
+        </summary>
+        <div class="brief-body">
+          <ol>
+            {% for item in result.hackathon_package["checklist"]["recommended_demo_path"] %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ol>
+          <h3>Evidence-backed claims to mention</h3>
+          <ul>
+            {% for claim in result.hackathon_package["top_claims"] %}
+            <li>{{ claim }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel showcase-panel">
+      <div class="section-heading">
+        <h2>Final showcase command center</h2>
+        <p>The optional wow layer: reports become routed tasks, demo risks become rescue cards, and the run gets a readiness score.</p>
+      </div>
+      {% set showcase = result.showcase_features %}
+      <div class="showcase-hero">
+        <div>
+          <div class="eyebrow">Showcase readiness</div>
+          <h3>{{ showcase.showcase_readiness.score }}/100 · {{ showcase.showcase_readiness.label }}</h3>
+          <p class="muted">This score is local and demo-oriented. It checks whether the Box, Apify, role-differentiation, evidence, package, and task-inbox stories are visible.</p>
+        </div>
+        <div class="status-metrics">
+          <span><strong>{{ showcase.task_inbox.task_count }}</strong><small>Tasks</small></span>
+          <span><strong>{{ showcase.task_inbox.high_priority_count }}</strong><small>High priority</small></span>
+          <span><strong>{{ showcase.rescue_cards|length }}</strong><small>Rescue cards</small></span>
+        </div>
+      </div>
+      <div class="showcase-grid">
+        <div class="mini-panel">
+          <h3>Readiness checks</h3>
+          <ul class="check-list">
+            {% for check in showcase.showcase_readiness.checks %}
+            <li class="{% if check.ok %}check-ok{% else %}check-warn{% endif %}">
+              <strong>{% if check.ok %}✓{% else %}!{% endif %} {{ check.label }}</strong>
+              <span>{{ check.why }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="mini-panel">
+          <h3>Box Task Inbox preview</h3>
+          <div class="task-list">
+            {% for task in showcase.task_inbox.tasks[:6] %}
+            <article class="task-row">
+              <span class="task-id">{{ task.id }}</span>
+              <div>
+                <strong>{{ task.role_label }} · {{ task.priority }}</strong>
+                <p>{{ task.task }}</p>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="mini-panel">
+          <h3>Demo rescue cards</h3>
+          {% for card in showcase.rescue_cards[:3] %}
+          <details class="rescue-card">
+            <summary>{{ card.trigger }}</summary>
+            <p>{{ card.answer }}</p>
+          </details>
+          {% endfor %}
+        </div>
+      </div>
+      <details class="brief package-details">
+        <summary>
+          <span>Recommended next actions</span>
+          <small>Use this if you have extra judging time.</small>
+        </summary>
+        <div class="brief-body">
+          <ol>
+            {% for action in showcase.showcase_readiness.next_actions %}
+            <li>{{ action }}</li>
+            {% endfor %}
+          </ol>
+          <h3>Risks to mention only if asked</h3>
+          <ul>
+            {% for risk in showcase.showcase_readiness.risks %}
+            <li>{{ risk }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </details>
+    </section>
+
     <section class="panel">
       <div class="section-heading">
         <h2>Project memory layout</h2>
-        <p>These files exist locally. In live Box mode, the same tree is uploaded to the generated Box folder.</p>
+        <p>These files exist locally. In live Box mode, the same tree is uploaded to the generated Box folder, including the submission-package artifacts.</p>
       </div>
       <div class="codebox">{{ project_folder }}</div>
       <div class="output-grid">
@@ -102,6 +268,22 @@
           <h3>Role briefs</h3>
           <ul>
             {% for item in result.manifest["outputs"]["role_briefs"] %}
+            <li><code>{{ item }}</code></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Submission package</h3>
+          <ul>
+            {% for item in result.manifest["outputs"].get("submission_package", []) %}
+            <li><code>{{ item }}</code></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Task inbox</h3>
+          <ul>
+            {% for item in result.manifest["outputs"].get("task_inbox", []) %}
             <li><code>{{ item }}</code></li>
             {% endfor %}
           </ul>
@@ -167,6 +349,33 @@
         {% endfor %}
       </div>
     </section>
+
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Judge-ready extras</h2>
+        <p>The final release keeps the submission package and adds task routing / rescue artifacts on top of the judge pack.</p>
+      </div>
+      <div class="output-grid">
+        <div>
+          <h3>Judge pitch pack</h3>
+          <p>Stored as <code>role_briefs/judge_pitch_pack.md</code>. Use this as the final 3-minute demo structure.</p>
+        </div>
+        <div>
+          <h3>Role comparison matrix</h3>
+          <p>Stored as <code>role_briefs/_role_comparison_matrix.md</code>. This proves the app is not a generic summarizer.</p>
+        </div>
+        <div>
+          <h3>Evidence map</h3>
+          <p>Stored as <code>metadata/evidence_map.json</code>. This gives reviewers source counts, top claims, gaps, and red flags.</p>
+        </div>
+        <div>
+          <h3>Box Task Inbox</h3>
+          <p>Stored as <code>task_inbox/00_box_task_inbox.md</code>. This turns briefings into role-routed next actions.</p>
+        </div>
+      </div>
+    </section>
+
 
     <section class="panel">
       <div class="section-heading">

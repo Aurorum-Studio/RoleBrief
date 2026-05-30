@@ -1,4 +1,4 @@
-"""Minimal smoke tests for Batch 3.
+"""Minimal smoke tests for the final release.
 
 Run:
     python smoke_test.py
@@ -19,14 +19,64 @@ from apify_client import MockApifyClient, normalize_apify_items  # noqa: E402
 from box_client import BoxRestUploader, LocalBoxMemory  # noqa: E402
 from demo_data import SAMPLE_PROJECT  # noqa: E402
 from report_generator import generate_role_briefs  # noqa: E402
+from hackathon_packager import generate_hackathon_package  # noqa: E402
+from showcase_features import generate_showcase_features  # noqa: E402
 
 
 def test_generator():
     result = generate_role_briefs(SAMPLE_PROJECT, SAMPLE_PROJECT["sources"], SAMPLE_PROJECT["roles"])
     assert "engineer" in result["briefs"]
     assert "judge" in result["briefs"]
-    assert result["sponsor_fit"]["total_score"] >= 80
+    assert result["sponsor_fit"]["total_score"] >= 90
     assert len(result["sources"]) >= 3
+    assert "evidence_map" in result
+    assert "role_strategy" in result
+    assert "judge_pitch_pack" in result
+    assert "role_briefs/_role_comparison_matrix.md" in result["manifest"]["outputs"]["role_briefs"]
+    assert "metadata/evidence_map.json" in result["manifest"]["outputs"]["metadata"]
+    assert "data contract" in result["briefs"]["engineer"]["markdown"].lower()
+    assert "decision memo" in result["briefs"]["executive"]["markdown"].lower()
+    assert "three-minute demo choreography" in result["briefs"]["judge"]["markdown"].lower()
+
+
+def test_hackathon_packager():
+    result = generate_role_briefs(SAMPLE_PROJECT, SAMPLE_PROJECT["sources"], SAMPLE_PROJECT["roles"])
+    result["collector_status"] = {
+        "mode": "curated_sample",
+        "requested_urls": 3,
+        "returned_items": 3,
+        "normalized_sources": len(SAMPLE_PROJECT["sources"]),
+    }
+    package = generate_hackathon_package(result)
+    assert "submission_readme.md" in package["docs"]
+    assert "three_minute_demo_script.md" in package["docs"]
+    assert "judge_qa_cheatsheet.md" in package["docs"]
+    assert "sponsor_story.md" in package["docs"]
+    assert "Box is the memory" in package["closing_line"]
+    assert package["checklist"]["role_differentiation_visible"] is True
+
+
+def test_showcase_features():
+    result = generate_role_briefs(SAMPLE_PROJECT, SAMPLE_PROJECT["sources"], SAMPLE_PROJECT["roles"])
+    result["collector_status"] = {
+        "mode": "curated_sample",
+        "ok": True,
+        "requested_urls": 3,
+        "returned_items": 3,
+        "normalized_sources": len(SAMPLE_PROJECT["sources"]),
+    }
+    result["box_sync_status"] = {
+        "mode": "local_only",
+        "ok": True,
+        "message": "Local only",
+    }
+    result["hackathon_package"] = generate_hackathon_package(result)
+    showcase = generate_showcase_features(result)
+    assert showcase["task_inbox"]["task_count"] >= 12
+    assert showcase["showcase_readiness"]["score"] >= 80
+    assert "Box Task Inbox" in showcase["task_inbox_markdown"]
+    assert "Demo Rescue Cards" in showcase["rescue_cards_markdown"]
+    assert len(showcase["rescue_cards"]) >= 3
 
 
 def test_mock_apify_client():
@@ -106,10 +156,18 @@ def test_flask_demo_route():
     assert b"Project memory layout" in response.data
     assert b"Evidence collection status" in response.data
     assert b"Box sync status" in response.data
+    assert b"Evidence health map" in response.data
+    assert b"Judge-ready extras" in response.data
+    assert b"Hackathon package" in response.data
+    assert b"Download full showcase package" in response.data
+    assert b"Final showcase command center" in response.data
+    assert b"Box Task Inbox preview" in response.data
 
 
 if __name__ == "__main__":
     test_generator()
+    test_hackathon_packager()
+    test_showcase_features()
     test_mock_apify_client()
     test_apify_item_normalizer()
     test_collect_sources_mock_path()

@@ -1,7 +1,6 @@
 """Box client boundary for RoleBrief AI.
 
-Batch 3 adds a real Box upload path while preserving the local mirror from
-Batches 1-2. The local mirror is always written first; if live Box is enabled,
+This module provides a real Box upload path while preserving the local mirror. The local mirror is always written first; if live Box is enabled,
 the same folder tree is then synced to Box.
 
 The live path uses Box's REST APIs with a developer token because that is the
