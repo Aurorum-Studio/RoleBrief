@@ -269,37 +269,3 @@ Final release checks passed.
 
 The tests intentionally avoid live Apify and live Box calls.
 
----
-
-## Recommended 3-minute judging demo
-
-1. Open the homepage.
-2. Say: “Teams do not only have a documentation problem. They have an audience mismatch problem.”
-3. Click **Run sample demo**.
-4. Show **Evidence collection status** and explain Apify.
-5. Show **Box source import status** if reading an existing Box folder, or explain that sample mode skips Box input.
-6. Show **Gemini AI generation status** and the enhanced roles.
-7. Show **Box sync status** and the generated project-memory tree.
-8. Show **Hackathon package**.
-9. Show **Final showcase command center**.
-10. Compare Engineer, Executive, and Judge briefs.
-11. Download the full showcase package.
-12. Close with: “Box is the memory. Apify is the eyes. Gemini is the translator.”
-
----
-
-## Judge-facing positioning
-
-- **Not a Box AI clone:** Box AI understands content in Box; RoleBrief AI brings external web evidence into Box and packages it by audience.
-- **Not a generic summarizer:** each role receives different decisions, not the same summary with different headings.
-- **Box is core:** the output is a structured, auditable project memory.
-- **Apify is core:** the app can collect live external evidence instead of only using uploaded files.
-- **AI is core:** Gemini can enhance the structured local drafts into higher-quality role-specific decisions, backed by a deterministic local engine for repeatable demos.
-
----
-
-## Reliable sample mode
-
-The sample demo works without tokens and writes a complete local project-memory folder with the full generated package.
-
-Use live integrations only after verifying your tokens before judging.
