@@ -52,7 +52,9 @@ def run_smoke_test() -> None:
     env = os.environ.copy()
     env["USE_REAL_APIFY"] = "false"
     env["USE_REAL_BOX"] = "false"
+    env["USE_REAL_LLM"] = "false"
     env["BOX_DEVELOPER_TOKEN"] = ""
+    env["GEMINI_API_KEY"] = ""
     completed = subprocess.run(
         [sys.executable, "smoke_test.py"],
         cwd=ROOT,
@@ -83,7 +85,9 @@ def check_clean_release() -> None:
 def check_demo_output() -> None:
     os.environ["USE_REAL_APIFY"] = "false"
     os.environ["USE_REAL_BOX"] = "false"
+    os.environ["USE_REAL_LLM"] = "false"
     os.environ["BOX_DEVELOPER_TOKEN"] = ""
+    os.environ["GEMINI_API_KEY"] = ""
 
     from app import app  # imported after env setup
 
@@ -98,6 +102,7 @@ def check_demo_output() -> None:
         "Project memory layout",
         "Evidence collection status",
         "Box sync status",
+        "Gemini AI generation status",
         "Hackathon package",
         "Final showcase command center",
         "Download full showcase package",
@@ -110,7 +115,7 @@ def check_demo_output() -> None:
     if not runs:
         fail("demo did not create result.json")
     result = json.loads(runs[0].read_text(encoding="utf-8"))
-    for key in ["briefs", "hackathon_package", "showcase_features", "box_sync_status", "evidence_map"]:
+    for key in ["briefs", "hackathon_package", "showcase_features", "box_sync_status", "evidence_map", "llm_generation"]:
         if key not in result:
             fail(f"result.json missing key: {key}")
     outputs = result.get("manifest", {}).get("outputs", {})
@@ -132,6 +137,7 @@ def main() -> None:
         "report_generator.py",
         "hackathon_packager.py",
         "showcase_features.py",
+        "llm_client.py",
         "smoke_test.py",
         ".env.example",
         "requirements.txt",

@@ -35,6 +35,7 @@ The same project evidence should become different outputs for different people:
 - Deterministic sample demo that does not need API keys
 - Optional live Apify Website Content Crawler integration
 - Optional live Box REST upload integration
+- Optional Gemini role-brief enhancement with deterministic fallback
 - Local Box-style project-memory mirror for every run
 - Role-specific markdown reports
 - Evidence map and source IDs
@@ -75,6 +76,7 @@ project-box-memory/
     ├── sponsor_fit.json
     ├── evidence_map.json
     ├── role_strategy.json
+    ├── llm_generation.json
     ├── evidence_collection.json
     ├── demo_checklist.json
     ├── task_router.json
@@ -93,6 +95,7 @@ rolebrief_ai_final/
 ├── apify_client.py            # Mock + live Apify REST client
 ├── box_client.py              # Local mirror + live Box REST uploader
 ├── report_generator.py        # Role-aware evidence engine
+├── llm_client.py              # Optional Gemini enhancement layer
 ├── hackathon_packager.py      # Submission/demo package generator
 ├── showcase_features.py       # Task inbox, readiness score, rescue cards
 ├── demo_data.py               # Curated sample project and evidence
@@ -176,6 +179,30 @@ For a live demo, keep crawl scope small. A depth of `0` only crawls the submitte
 
 ---
 
+## Enable Gemini role-brief enhancement
+
+Edit `.env`:
+
+```env
+USE_REAL_LLM=true
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_TEMPERATURE=0.35
+GEMINI_MAX_OUTPUT_TOKENS=2600
+```
+
+How it works:
+
+1. The local deterministic role engine still creates a structured draft first.
+2. Gemini receives the draft plus source summaries, source IDs, and the evidence map.
+3. Gemini rewrites each selected role brief into a more natural, role-specific report.
+4. If Gemini is unavailable, the app keeps the deterministic draft and records the fallback in `metadata/llm_generation.json`.
+
+This is the recommended high-quality mode for judging, but keep the sample fallback ready.
+
+---
+
 ## Enable live Box export
 
 Edit `.env`:
@@ -224,12 +251,13 @@ The tests intentionally avoid live Apify and live Box calls.
 2. Say: “Teams do not only have a documentation problem. They have an audience mismatch problem.”
 3. Click **Run sample demo**.
 4. Show **Evidence collection status** and explain Apify.
-5. Show **Box sync status** and the generated project-memory tree.
-6. Show **Hackathon package**.
-7. Show **Final showcase command center**.
-8. Compare Engineer, Executive, and Judge briefs.
-9. Download the full showcase package.
-10. Close with: “Box is the memory. Apify is the eyes. AI is the translator.”
+5. Show **Gemini AI generation status**. If Gemini is enabled, show enhanced roles; if not, explain deterministic fallback.
+6. Show **Box sync status** and the generated project-memory tree.
+7. Show **Hackathon package**.
+8. Show **Final showcase command center**.
+9. Compare Engineer, Executive, and Judge briefs.
+10. Download the full showcase package.
+11. Close with: “Box is the memory. Apify is the eyes. Gemini is the translator.”
 
 ---
 
@@ -239,12 +267,12 @@ The tests intentionally avoid live Apify and live Box calls.
 - **Not a generic summarizer:** each role receives different decisions, not the same summary with different headings.
 - **Box is core:** the output is a structured, auditable project memory.
 - **Apify is core:** the app can collect live external evidence instead of only using uploaded files.
-- **AI is core:** it translates evidence into role-specific decisions, tasks, and presentation-ready artifacts.
+- **AI is core:** Gemini can enhance the structured local drafts into higher-quality role-specific decisions, while deterministic fallback preserves demo reliability.
 
 ---
 
 ## Safe demo fallback
 
-The sample demo works without tokens. Even if live Apify or Box fails, the app still writes a local project-memory folder and shows a complete generated package.
+The sample demo works without tokens. Even if live Apify, Gemini, or Box fails, the app still writes a local project-memory folder and shows a complete generated package.
 
 Use live integrations only after verifying your tokens before judging.

@@ -84,6 +84,38 @@
     </section>
 
 
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Gemini AI generation status</h2>
+        <p>Gemini is optional. The deterministic local draft remains the fallback so the demo never depends on one external model call.</p>
+      </div>
+      {% set llm = result.llm_generation %}
+      <div class="status-card {% if llm.enhanced_roles %}ok-card{% elif llm.enabled %}warn-card{% else %}neutral-card{% endif %}">
+        <div>
+          <h3>{{ llm.provider }} · {{ llm.model or "fallback" }}</h3>
+          <p>
+            {% if llm.enabled %}
+              Live Gemini enhancement was requested. {{ llm.enhanced_roles|length }} roles enhanced; {{ llm.fallback_roles|length }} roles used fallback.
+            {% else %}
+              Live Gemini is disabled. Reports use the deterministic local role engine.
+            {% endif %}
+          </p>
+        </div>
+        <div class="status-metrics">
+          <span><strong>{{ llm.enhanced_roles|length }}</strong><small>Enhanced</small></span>
+          <span><strong>{{ llm.fallback_roles|length }}</strong><small>Fallback</small></span>
+          <span><strong>{{ "yes" if llm.api_key_present else "no" }}</strong><small>Key</small></span>
+        </div>
+      </div>
+      {% if llm.warnings %}
+      <ul class="warning-list">
+        {% for warning in llm.warnings[:5] %}
+        <li>{{ warning }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
     <section class="two-panels">
       <section class="panel no-margin">
         <div class="section-heading">
@@ -388,7 +420,7 @@
         <details class="brief" {% if loop.first %}open{% endif %}>
           <summary>
             <span>{{ brief.label }}</span>
-            <small>{{ brief.description }}</small>
+            <small>{{ brief.description }} · {{ brief.generation_mode|replace('_', ' ') }}</small>
           </summary>
           <div class="brief-body">
             {% for section in brief.sections %}

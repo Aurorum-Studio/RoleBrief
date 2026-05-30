@@ -12,7 +12,9 @@ from tempfile import TemporaryDirectory
 
 os.environ["USE_REAL_APIFY"] = "false"
 os.environ["USE_REAL_BOX"] = "false"
+os.environ["USE_REAL_LLM"] = "false"
 os.environ["BOX_DEVELOPER_TOKEN"] = ""
+os.environ["GEMINI_API_KEY"] = ""
 
 from app import app, collect_sources  # noqa: E402
 from apify_client import MockApifyClient, normalize_apify_items  # noqa: E402
@@ -34,9 +36,32 @@ def test_generator():
     assert "judge_pitch_pack" in result
     assert "role_briefs/_role_comparison_matrix.md" in result["manifest"]["outputs"]["role_briefs"]
     assert "metadata/evidence_map.json" in result["manifest"]["outputs"]["metadata"]
+    assert "metadata/llm_generation.json" in result["manifest"]["outputs"]["metadata"]
+    assert result["llm_generation"]["enabled"] is False
+    assert result["briefs"]["engineer"]["generation_mode"] == "deterministic_fallback"
     assert "data contract" in result["briefs"]["engineer"]["markdown"].lower()
     assert "decision memo" in result["briefs"]["executive"]["markdown"].lower()
     assert "three-minute demo choreography" in result["briefs"]["judge"]["markdown"].lower()
+
+
+def test_gemini_missing_key_fallback():
+    project = dict(SAMPLE_PROJECT)
+    project["use_live_llm"] = True
+    project["roles"] = ["engineer"]
+    old_key = os.environ.get("GEMINI_API_KEY")
+    os.environ["GEMINI_API_KEY"] = ""
+    try:
+        result = generate_role_briefs(project, SAMPLE_PROJECT["sources"], ["engineer"])
+    finally:
+        if old_key is None:
+            os.environ.pop("GEMINI_API_KEY", None)
+        else:
+            os.environ["GEMINI_API_KEY"] = old_key
+    assert result["llm_generation"]["enabled"] is True
+    assert result["llm_generation"]["provider"] == "gemini"
+    assert result["llm_generation"]["fallback_roles"] == ["engineer"]
+    assert result["briefs"]["engineer"]["generation_mode"] == "deterministic_fallback"
+    assert "GEMINI_API_KEY" in result["llm_generation"]["warnings"][0]
 
 
 def test_hackathon_packager():
@@ -156,6 +181,7 @@ def test_flask_demo_route():
     assert b"Project memory layout" in response.data
     assert b"Evidence collection status" in response.data
     assert b"Box sync status" in response.data
+    assert b"Gemini AI generation status" in response.data
     assert b"Evidence health map" in response.data
     assert b"Judge-ready extras" in response.data
     assert b"Hackathon package" in response.data
@@ -166,6 +192,7 @@ def test_flask_demo_route():
 
 if __name__ == "__main__":
     test_generator()
+    test_gemini_missing_key_fallback()
     test_hackathon_packager()
     test_showcase_features()
     test_mock_apify_client()

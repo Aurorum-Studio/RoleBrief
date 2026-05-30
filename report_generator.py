@@ -13,6 +13,8 @@ from datetime import datetime
 from textwrap import dedent
 import re
 
+from llm_client import create_llm_enhancer, should_use_live_llm
+
 
 ROLE_LABELS = {
     "engineer": "Engineer Brief",
@@ -563,10 +565,22 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
     matrix_markdown = role_matrix_markdown(role_strategy)
     judge_pack = judge_pitch_pack_markdown(project, evidence_map, generated_at)
 
+    use_live_llm = bool(project.get("use_live_llm")) or should_use_live_llm(None)
+    llm_enhancer = create_llm_enhancer(use_live_llm)
+
     briefs = {}
     for role in roles:
         sections = _role_sections(role, project, sources, evidence_map)
-        markdown = brief_to_markdown(role, project, sources, sections, generated_at)
+        draft_markdown = brief_to_markdown(role, project, sources, sections, generated_at)
+        markdown, llm_status = llm_enhancer.enhance(
+            role=role,
+            role_label=ROLE_LABELS[role],
+            role_profile=ROLE_PROFILES[role],
+            project=project,
+            sources=sources,
+            evidence_map=evidence_map,
+            draft_markdown=draft_markdown,
+        )
         briefs[role] = {
             "role": role,
             "label": ROLE_LABELS[role],
@@ -574,7 +588,12 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
             "profile": ROLE_PROFILES[role],
             "sections": sections,
             "markdown": markdown,
+            "draft_markdown": draft_markdown,
+            "generation_mode": "gemini" if llm_status.get("enhanced") else "deterministic_fallback",
+            "llm_status": llm_status,
         }
+
+    llm_generation = llm_enhancer.state.to_dict()
 
     manifest = {
         "project_name": project_name,
@@ -593,12 +612,13 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
                 "metadata/sponsor_fit.json",
                 "metadata/evidence_map.json",
                 "metadata/role_strategy.json",
+                "metadata/llm_generation.json",
             ],
         },
         "sponsor_story": {
             "box": "Trusted project memory for source snapshots, generated briefs, evidence maps, and manifest metadata.",
             "apify": "External evidence collection from live web pages and docs.",
-            "ai": "Audience-aware translation into role-specific reports and judge-ready pitch artifacts.",
+            "ai": "Audience-aware translation into role-specific reports and judge-ready pitch artifacts, with optional Gemini enhancement and deterministic fallback.",
         },
     }
 
@@ -612,6 +632,7 @@ def generate_role_briefs(project: dict, sources: list[dict] | None = None, roles
         "sponsor_fit": sponsor_fit,
         "evidence_map": evidence_map,
         "role_strategy": role_strategy,
+        "llm_generation": llm_generation,
         "role_matrix_markdown": matrix_markdown,
         "judge_pitch_pack": judge_pack,
     }

@@ -19,7 +19,8 @@
       <div class="pill-row">
         <span class="pill">Box = trusted memory</span>
         <span class="pill">Apify = live web evidence</span>
-        <span class="pill">AI = role translator</span>
+        <span class="pill">AI = Gemini role translator</span>
+        <span class="pill">Fallback = deterministic demo safety</span>
         <span class="pill">Showcase layer = task inbox + rescue cards</span>
       </div>
       <div class="hero-actions">
@@ -35,6 +36,9 @@
         </p>
         <p class="status {% if has_box_token %}ok{% endif %}">
           Box token: {% if has_box_token %}detected{% else %}not set{% endif %}. Live Box default: {{ "on" if use_real_box_env else "off" }}. Parent folder: {{ box_parent_folder_id }}.
+        </p>
+        <p class="status {% if has_gemini_key %}ok{% endif %}">
+          Gemini key: {% if has_gemini_key %}detected{% else %}not set{% endif %}. Live Gemini default: {{ "on" if use_real_llm_env else "off" }}. Model: {{ gemini_model }}.
         </p>
       </div>
     </section>
@@ -59,6 +63,13 @@
         <p>
           Apify can crawl external URLs, normalize web evidence, and feed the same role-brief pipeline.
           Mock fallback keeps the demo stable.
+        </p>
+      </article>
+      <article class="card">
+        <h2>Why Gemini</h2>
+        <p>
+          Gemini upgrades the local structured draft into a more natural role-specific brief,
+          while the deterministic engine remains as a safe fallback.
         </p>
       </article>
     </section>
@@ -116,6 +127,19 @@
           <p class="field-hint">
             Requires <code>USE_REAL_BOX=true</code> or this checkbox, plus <code>BOX_DEVELOPER_TOKEN</code> in <code>.env</code>.
             The local Box-style mirror is always written first, so the demo still works if Box upload fails.
+          </p>
+        </fieldset>
+
+
+        <fieldset>
+          <legend>Gemini AI mode</legend>
+          <label class="checkbox wide">
+            <input type="checkbox" name="use_live_llm" {% if use_real_llm_env %}checked{% endif %}>
+            <span>Enhance role briefs with Gemini</span>
+          </label>
+          <p class="field-hint">
+            Requires <code>USE_REAL_LLM=true</code> or this checkbox, plus <code>GEMINI_API_KEY</code> in <code>.env</code>.
+            Gemini rewrites the deterministic draft using only the collected evidence. If it fails, the local fallback brief is kept.
           </p>
         </fieldset>
 

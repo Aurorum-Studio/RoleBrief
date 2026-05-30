@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, send_file, abort
 
 from apify_client import ApifyEvidenceClient, MockApifyClient, should_use_live_apify
+from llm_client import should_use_live_llm
 from box_client import BoxRestUploader, LocalBoxMemory, slugify, should_use_live_box
 from demo_data import SAMPLE_PROJECT
 from report_generator import (
@@ -43,6 +44,7 @@ def selected_roles(form) -> list[str]:
 def build_project_from_form(form) -> dict:
     use_live_apify = form.get("use_live_apify") == "on" or should_use_live_apify(None)
     use_live_box = form.get("use_live_box") == "on" or should_use_live_box(None)
+    use_live_llm = form.get("use_live_llm") == "on" or should_use_live_llm(None)
     return {
         "project_name": form.get("project_name", "").strip() or "Untitled Project",
         "tagline": form.get("tagline", "").strip() or "One project. Many audiences.",
@@ -52,6 +54,7 @@ def build_project_from_form(form) -> dict:
         "roles": selected_roles(form),
         "use_live_apify": use_live_apify,
         "use_live_box": use_live_box,
+        "use_live_llm": use_live_llm,
     }
 
 
@@ -152,6 +155,7 @@ def write_local_box_run(run_id: str, result: dict) -> Path:
     box.write_json(project_folder, "metadata/sponsor_fit.json", result["sponsor_fit"])
     box.write_json(project_folder, "metadata/evidence_map.json", result["evidence_map"])
     box.write_json(project_folder, "metadata/role_strategy.json", result["role_strategy"])
+    box.write_json(project_folder, "metadata/llm_generation.json", result.get("llm_generation", {}))
     box.write_json(project_folder, "metadata/evidence_collection.json", result["collector_status"])
     box.write_json(project_folder, "metadata/demo_checklist.json", result.get("hackathon_package", {}).get("checklist", {}))
     if result.get("showcase_features"):
@@ -179,6 +183,7 @@ def sync_to_box_and_persist(run_id: str, result: dict, project_folder: Path) -> 
     # Re-write metadata and result.json after the live Box sync status is known.
     box = LocalBoxMemory(OUTPUT_ROOT / run_id)
     box.write_json(project_folder, "metadata/manifest.json", result["manifest"])
+    box.write_json(project_folder, "metadata/llm_generation.json", result.get("llm_generation", {}))
     box.write_json(project_folder, "metadata/box_sync.json", box_status)
     box.write_json(OUTPUT_ROOT / run_id, "result.json", result)
     return result
@@ -212,6 +217,7 @@ def run_project(project: dict) -> str:
         "metadata/evidence_collection.json",
         "metadata/evidence_map.json",
         "metadata/role_strategy.json",
+        "metadata/llm_generation.json",
         "metadata/demo_checklist.json",
         "metadata/task_router.json",
         "metadata/showcase_readiness.json",
@@ -238,6 +244,9 @@ def index():
         has_apify_token=bool(os.getenv("APIFY_API_TOKEN", "").strip()),
         use_real_box_env=should_use_live_box(None),
         has_box_token=bool(os.getenv("BOX_DEVELOPER_TOKEN", "").strip()),
+        use_real_llm_env=should_use_live_llm(None),
+        has_gemini_key=bool(os.getenv("GEMINI_API_KEY", "").strip()),
+        gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash",
         box_parent_folder_id=os.getenv("BOX_PARENT_FOLDER_ID", "0").strip() or "0",
     )
 
@@ -253,6 +262,7 @@ def analyze():
 def demo():
     project = dict(SAMPLE_PROJECT)
     project["use_live_box"] = should_use_live_box(None)
+    project["use_live_llm"] = should_use_live_llm(None)
     project["_use_sample_sources"] = True
     run_id = run_project(project)
     return redirect(url_for("show_result", run_id=run_id))

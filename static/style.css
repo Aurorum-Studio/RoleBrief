@@ -395,6 +395,10 @@ code {
   border-color: rgba(255, 209, 102, 0.45);
 }
 
+.neutral-card {
+  border-color: rgba(143, 184, 255, 0.25);
+}
+
 .status-card h3 {
   margin-top: 0;
   margin-bottom: 8px;
