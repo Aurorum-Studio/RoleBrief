@@ -86,6 +86,32 @@
 
     <section class="panel">
       <div class="section-heading">
+        <h2>Box source import status</h2>
+        <p>This is the input side of Box: existing Box folder files can become evidence before Gemini writes role-specific reports.</p>
+      </div>
+      {% set box_read = result.box_read_status %}
+      <div class="status-card {% if box_read.ok and box_read.normalized_sources %}ok-card{% elif box_read.ok %}neutral-card{% else %}warn-card{% endif %}">
+        <div>
+          <h3>{{ box_read.mode }}</h3>
+          <p>{{ box_read.message }}</p>
+        </div>
+        <div class="status-metrics">
+          <span><strong>{{ box_read.scanned_items or 0 }}</strong><small>Scanned</small></span>
+          <span><strong>{{ box_read.downloaded_files or 0 }}</strong><small>Files</small></span>
+          <span><strong>{{ box_read.normalized_sources or 0 }}</strong><small>Sources</small></span>
+        </div>
+      </div>
+      {% if box_read.warnings %}
+      <ul class="warning-list">
+        {% for warning in box_read.warnings[:5] %}
+        <li>{{ warning }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
         <h2>Gemini AI generation status</h2>
         <p>Gemini is optional. The deterministic local draft remains the fallback so the demo never depends on one external model call.</p>
       </div>

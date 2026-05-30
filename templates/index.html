@@ -35,7 +35,7 @@
           Apify token: {% if has_apify_token %}detected{% else %}not set{% endif %}. Live crawl default: {{ "on" if use_real_apify_env else "off" }}.
         </p>
         <p class="status {% if has_box_token %}ok{% endif %}">
-          Box token: {% if has_box_token %}detected{% else %}not set{% endif %}. Live Box default: {{ "on" if use_real_box_env else "off" }}. Parent folder: {{ box_parent_folder_id }}.
+          Box token: {% if has_box_token %}detected{% else %}not set{% endif %}. Live Box export: {{ "on" if use_real_box_env else "off" }}. Box read: {{ "on" if use_box_read_env else "off" }}.
         </p>
         <p class="status {% if has_gemini_key %}ok{% endif %}">
           Gemini key: {% if has_gemini_key %}detected{% else %}not set{% endif %}. Live Gemini default: {{ "on" if use_real_llm_env else "off" }}. Model: {{ gemini_model }}.
@@ -115,6 +115,22 @@
           <p class="field-hint">
             Requires <code>USE_REAL_APIFY=true</code> or this checkbox, plus <code>APIFY_API_TOKEN</code> in <code>.env</code>.
             If the crawl fails, the app automatically falls back to mock evidence so the demo still works.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Box source import mode</legend>
+          <label class="checkbox wide">
+            <input type="checkbox" name="use_box_read" {% if use_box_read_env %}checked{% endif %}>
+            <span>Read existing files from a Box folder as project evidence</span>
+          </label>
+          <label>
+            Box source folder ID
+            <input name="box_source_folder_id" placeholder="Example: 123456789 or leave blank" value="{{ box_source_folder_id }}">
+          </label>
+          <p class="field-hint">
+            Requires <code>USE_BOX_READ=true</code> or this checkbox, plus <code>BOX_DEVELOPER_TOKEN</code> and <code>BOX_SOURCE_FOLDER_ID</code>.
+            This imports small text-like Box files as input evidence before Gemini generates role briefs.
           </p>
         </fieldset>
 

@@ -12,13 +12,14 @@ from tempfile import TemporaryDirectory
 
 os.environ["USE_REAL_APIFY"] = "false"
 os.environ["USE_REAL_BOX"] = "false"
+os.environ["USE_BOX_READ"] = "false"
 os.environ["USE_REAL_LLM"] = "false"
 os.environ["BOX_DEVELOPER_TOKEN"] = ""
 os.environ["GEMINI_API_KEY"] = ""
 
 from app import app, collect_sources  # noqa: E402
 from apify_client import MockApifyClient, normalize_apify_items  # noqa: E402
-from box_client import BoxRestUploader, LocalBoxMemory  # noqa: E402
+from box_client import BoxContentReader, BoxRestUploader, LocalBoxMemory  # noqa: E402
 from demo_data import SAMPLE_PROJECT  # noqa: E402
 from report_generator import generate_role_briefs  # noqa: E402
 from hackathon_packager import generate_hackathon_package  # noqa: E402
@@ -172,6 +173,32 @@ def test_box_missing_token_status():
         assert "BOX_DEVELOPER_TOKEN" in status["message"]
 
 
+def test_box_read_disabled_status():
+    sources, status = BoxContentReader(use_live=False).collect_sources("demo goal")
+    data = status.to_dict()
+    assert sources == []
+    assert data["mode"] == "disabled"
+    assert data["ok"] is True
+
+
+def test_box_read_missing_token_status():
+    reader = BoxContentReader(token="", folder_id="123", use_live=True)
+    sources, status = reader.collect_sources("demo goal")
+    data = status.to_dict()
+    assert sources == []
+    assert data["mode"] == "missing_token"
+    assert data["ok"] is False
+
+
+def test_box_read_missing_folder_status():
+    reader = BoxContentReader(token="fake-token", folder_id="", use_live=True)
+    sources, status = reader.collect_sources("demo goal")
+    data = status.to_dict()
+    assert sources == []
+    assert data["mode"] == "missing_folder"
+    assert data["ok"] is False
+
+
 def test_flask_demo_route():
     app.testing = True
     client = app.test_client()
@@ -181,6 +208,7 @@ def test_flask_demo_route():
     assert b"Project memory layout" in response.data
     assert b"Evidence collection status" in response.data
     assert b"Box sync status" in response.data
+    assert b"Box source import status" in response.data
     assert b"Gemini AI generation status" in response.data
     assert b"Evidence health map" in response.data
     assert b"Judge-ready extras" in response.data
@@ -201,5 +229,8 @@ if __name__ == "__main__":
     test_local_box_memory()
     test_box_disabled_status()
     test_box_missing_token_status()
+    test_box_read_disabled_status()
+    test_box_read_missing_token_status()
+    test_box_read_missing_folder_status()
     test_flask_demo_route()
     print("Smoke tests passed.")

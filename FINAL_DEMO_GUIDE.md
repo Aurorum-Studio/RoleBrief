@@ -13,21 +13,23 @@ Use this as the official judging route. Do not improvise unless live APIs are al
 3. Click **Run sample demo**.
 4. Point to **Evidence collection status**.
    - Say: Apify is the live web evidence layer; sample mode keeps judging reliable.
-5. Point to **Gemini AI generation status**.
+5. Point to **Box source import status**.
+   - Say: this is the input side of Box; existing Box files can become evidence sources. Sample mode can skip it for reliability.
+6. Point to **Gemini AI generation status**.
    - Say: Gemini is the high-quality role translator; the deterministic local generator is the fallback.
-6. Point to **Box sync status**.
+7. Point to **Box sync status**.
    - Say: every run produces a Box-style project memory and can upload to real Box with a token.
-7. Open **Project memory layout**.
+8. Open **Project memory layout**.
    - Show `sources/`, `role_briefs/`, `task_inbox/`, `submission_package/`, and `metadata/`.
-8. Compare these briefs:
+9. Compare these briefs:
    - Engineer Brief: architecture and implementation risk.
    - Executive Brief: business decision memo.
    - Hackathon Judge Brief: pitch, sponsor story, demo flow.
-9. Show **Hackathon package**.
+10. Show **Hackathon package**.
    - Say: the product generates the materials needed to submit and explain the project.
-10. Show **Final showcase command center**.
+11. Show **Final showcase command center**.
    - Say: generated reports become routed tasks and demo rescue cards.
-11. Click **Download full showcase package**.
+12. Click **Download full showcase package**.
 
 ## Closing line
 
@@ -48,7 +50,14 @@ Live Gemini:
 - Keep `GEMINI_MODEL=gemini-2.5-flash` for fast judging output.
 - If it fails, the deterministic draft remains visible and the fallback is recorded in `metadata/llm_generation.json`.
 
-Live Box:
+Live Box read/import:
+
+- Turn on `USE_BOX_READ=true`.
+- Add `BOX_DEVELOPER_TOKEN`.
+- Set `BOX_SOURCE_FOLDER_ID` to an existing Box folder containing small text-like files.
+- Keep `BOX_READ_MAX_FILES` small for judging.
+
+Live Box export:
 
 - Turn on `USE_REAL_BOX=true`.
 - Add `BOX_DEVELOPER_TOKEN`.

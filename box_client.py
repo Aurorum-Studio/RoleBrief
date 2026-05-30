@@ -246,6 +246,258 @@ class BoxRestUploader:
         return response.json()
 
 
+@dataclass
+class BoxReadStatus:
+    mode: str
+    ok: bool
+    message: str
+    folder_id: str | None = None
+    scanned_items: int = 0
+    downloaded_files: int = 0
+    normalized_sources: int = 0
+    fallback_used: bool = False
+    warnings: list[str] | None = None
+    imported_items: list[dict[str, Any]] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data = asdict(self)
+        data["warnings"] = data.get("warnings") or []
+        data["imported_items"] = data.get("imported_items") or []
+        return data
+
+
+class BoxContentReader:
+    """Read existing Box folder contents into RoleBrief evidence sources.
+
+    This is the missing counterpart to BoxRestUploader. The uploader turns a run
+    into a Box project memory; the reader turns an existing Box folder into
+    source evidence that Gemini can reason over.
+    """
+
+    def __init__(
+        self,
+        token: str | None = None,
+        folder_id: str | None = None,
+        recursive: bool | None = None,
+        max_files: int | None = None,
+        max_bytes: int | None = None,
+        timeout_seconds: int | None = None,
+        use_live: bool | None = None,
+    ) -> None:
+        self.token = token or os.getenv("BOX_DEVELOPER_TOKEN", "").strip()
+        self.folder_id = folder_id or os.getenv("BOX_SOURCE_FOLDER_ID", "").strip()
+        self.recursive = recursive if recursive is not None else os.getenv("BOX_READ_RECURSIVE", "false").lower() in {"1", "true", "yes", "on"}
+        self.max_files = max_files if max_files is not None else int(os.getenv("BOX_READ_MAX_FILES", "8") or "8")
+        self.max_bytes = max_bytes if max_bytes is not None else int(os.getenv("BOX_READ_MAX_BYTES", "120000") or "120000")
+        self.timeout_seconds = timeout_seconds or int(os.getenv("BOX_TIMEOUT_SECONDS", "90") or "90")
+        self.allowed_extensions = parse_extension_list(os.getenv("BOX_READ_ALLOWED_EXTENSIONS", ".md,.txt,.json,.csv,.py,.js,.ts,.html,.css,.yml,.yaml,.xml"))
+        self.use_live = should_read_live_box(use_live)
+        self.session = requests.Session()
+        if self.token:
+            self.session.headers.update({"Authorization": f"Bearer {self.token}"})
+
+    def collect_sources(self, project_goal: str = "") -> tuple[list[dict[str, Any]], BoxReadStatus]:
+        if not self.use_live:
+            return [], BoxReadStatus(
+                mode="disabled",
+                ok=True,
+                message="Box source import is disabled. The app will use URL evidence, notes, and sample data only.",
+                folder_id=self.folder_id or None,
+                fallback_used=True,
+                warnings=["Set USE_BOX_READ=true and BOX_SOURCE_FOLDER_ID in .env to import existing Box files as evidence."],
+            )
+
+        if not self.token:
+            return [], BoxReadStatus(
+                mode="missing_token",
+                ok=False,
+                message="USE_BOX_READ=true, but BOX_DEVELOPER_TOKEN is missing. No Box files were imported.",
+                folder_id=self.folder_id or None,
+                fallback_used=True,
+                warnings=["Set BOX_DEVELOPER_TOKEN with read access to the source folder."],
+            )
+
+        if not self.folder_id:
+            return [], BoxReadStatus(
+                mode="missing_folder",
+                ok=False,
+                message="USE_BOX_READ=true, but BOX_SOURCE_FOLDER_ID is missing. No Box files were imported.",
+                fallback_used=True,
+                warnings=["Copy a Box folder ID from the Box web URL and set BOX_SOURCE_FOLDER_ID."],
+            )
+
+        try:
+            items = self._walk_folder(self.folder_id)
+            sources: list[dict[str, Any]] = []
+            imported_items: list[dict[str, Any]] = []
+            warnings: list[str] = []
+            for item in items:
+                if len(sources) >= self.max_files:
+                    break
+                if item.get("type") != "file":
+                    continue
+                name = item.get("name", "untitled")
+                if not is_allowed_text_file(name, self.allowed_extensions):
+                    continue
+                text = self.download_file_text(item["id"], name)
+                if not text:
+                    warnings.append(f"Skipped empty or unreadable Box file: {name}")
+                    continue
+                source_id = f"B{len(sources) + 1}"
+                source = {
+                    "id": source_id,
+                    "title": name,
+                    "url": box_file_url(item.get("id")) or f"box://file/{item.get('id')}",
+                    "source_type": "box_file",
+                    "summary": summarize_box_text(text),
+                    "key_points": extract_box_key_points(text),
+                    "excerpt": text[:2200],
+                    "collector": "box_read",
+                    "box_file_id": item.get("id"),
+                    "box_file_name": name,
+                    "box_parent_folder_id": item.get("parent", {}).get("id") if isinstance(item.get("parent"), dict) else self.folder_id,
+                }
+                sources.append(source)
+                imported_items.append({
+                    "id": item.get("id"),
+                    "name": name,
+                    "source_id": source_id,
+                    "url": source["url"],
+                    "size": item.get("size"),
+                })
+
+            return sources, BoxReadStatus(
+                mode="box_read_live",
+                ok=True,
+                message="Existing Box folder files were imported as evidence sources.",
+                folder_id=self.folder_id,
+                scanned_items=len(items),
+                downloaded_files=len(imported_items),
+                normalized_sources=len(sources),
+                fallback_used=False,
+                warnings=warnings,
+                imported_items=imported_items,
+            )
+        except Exception as exc:
+            return [], BoxReadStatus(
+                mode="read_failed",
+                ok=False,
+                message=f"Box source import failed: {exc}",
+                folder_id=self.folder_id,
+                fallback_used=True,
+                warnings=["Check token scopes, folder permissions, folder ID, and file types."],
+            )
+
+    def _walk_folder(self, folder_id: str) -> list[dict[str, Any]]:
+        queue = [folder_id]
+        collected: list[dict[str, Any]] = []
+        while queue and len(collected) < max(self.max_files * 4, self.max_files):
+            current = queue.pop(0)
+            items = self.list_folder_items(current)
+            for item in items:
+                collected.append(item)
+                if self.recursive and item.get("type") == "folder":
+                    queue.append(item["id"])
+                if len(collected) >= max(self.max_files * 4, self.max_files):
+                    break
+            if not self.recursive:
+                break
+        return collected
+
+    def list_folder_items(self, folder_id: str) -> list[dict[str, Any]]:
+        items: list[dict[str, Any]] = []
+        marker: str | None = None
+        fields = "id,type,name,size,parent,modified_at"
+        while True:
+            params: dict[str, Any] = {"usemarker": "true", "limit": min(100, max(1, self.max_files * 2)), "fields": fields}
+            if marker:
+                params["marker"] = marker
+            response = self.session.get(
+                f"{BOX_API_BASE}/folders/{folder_id}/items",
+                params=params,
+                timeout=self.timeout_seconds,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            entries = payload.get("entries") or []
+            items.extend(entries)
+            marker = payload.get("next_marker")
+            if not marker or len(items) >= max(self.max_files * 4, self.max_files):
+                break
+        return items
+
+    def download_file_text(self, file_id: str, name: str) -> str:
+        headers = {"Range": f"bytes=0-{max(0, self.max_bytes - 1)}"}
+        response = self.session.get(
+            f"{BOX_API_BASE}/files/{file_id}/content",
+            headers=headers,
+            timeout=self.timeout_seconds,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        raw = response.content[: self.max_bytes]
+        return decode_text_bytes(raw, name)
+
+
+def should_read_live_box(form_value: bool | None = None) -> bool:
+    if form_value is not None:
+        return bool(form_value)
+    return os.getenv("USE_BOX_READ", "false").lower() in {"1", "true", "yes", "on"}
+
+
+def parse_extension_list(raw: str) -> set[str]:
+    values = set()
+    for item in (raw or "").split(','):
+        item = item.strip().lower()
+        if not item:
+            continue
+        if not item.startswith('.'):
+            item = '.' + item
+        values.add(item)
+    return values or {".md", ".txt", ".json", ".csv"}
+
+
+def is_allowed_text_file(name: str, allowed_extensions: set[str]) -> bool:
+    lower = (name or "").lower()
+    return any(lower.endswith(ext) for ext in allowed_extensions)
+
+
+def decode_text_bytes(raw: bytes, name: str) -> str:
+    for encoding in ("utf-8", "utf-8-sig", "latin-1"):
+        try:
+            return raw.decode(encoding, errors="replace").strip()
+        except Exception:
+            continue
+    return ""
+
+
+def summarize_box_text(text: str, limit: int = 650) -> str:
+    text = re.sub(r"\s+", " ", text or "").strip()
+    if len(text) <= limit:
+        return text
+    boundary = text.rfind(". ", 0, limit)
+    if boundary < 180:
+        boundary = limit
+    return text[:boundary].strip() + "…"
+
+
+def extract_box_key_points(text: str, max_points: int = 5) -> list[str]:
+    lines = []
+    for line in (text or "").splitlines():
+        cleaned = line.strip(" #-*\t")
+        if 25 <= len(cleaned) <= 180:
+            lines.append(cleaned)
+        if len(lines) >= max_points:
+            return lines
+    sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", text or "").strip())
+    for sentence in sentences:
+        if 35 <= len(sentence) <= 180:
+            lines.append(sentence)
+        if len(lines) >= max_points:
+            break
+    return lines or ["Imported from an existing Box file as project evidence."]
+
+
 def should_use_live_box(form_value: bool | None = None) -> bool:
     if form_value is not None:
         return bool(form_value)

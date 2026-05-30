@@ -11,7 +11,7 @@ from flask import Flask, render_template, request, redirect, url_for, send_file,
 
 from apify_client import ApifyEvidenceClient, MockApifyClient, should_use_live_apify
 from llm_client import should_use_live_llm
-from box_client import BoxRestUploader, LocalBoxMemory, slugify, should_use_live_box
+from box_client import BoxContentReader, BoxRestUploader, LocalBoxMemory, slugify, should_read_live_box, should_use_live_box
 from demo_data import SAMPLE_PROJECT
 from report_generator import (
     DEFAULT_ROLES,
@@ -44,6 +44,7 @@ def selected_roles(form) -> list[str]:
 def build_project_from_form(form) -> dict:
     use_live_apify = form.get("use_live_apify") == "on" or should_use_live_apify(None)
     use_live_box = form.get("use_live_box") == "on" or should_use_live_box(None)
+    use_box_read = form.get("use_box_read") == "on" or should_read_live_box(None)
     use_live_llm = form.get("use_live_llm") == "on" or should_use_live_llm(None)
     return {
         "project_name": form.get("project_name", "").strip() or "Untitled Project",
@@ -54,6 +55,8 @@ def build_project_from_form(form) -> dict:
         "roles": selected_roles(form),
         "use_live_apify": use_live_apify,
         "use_live_box": use_live_box,
+        "use_box_read": use_box_read,
+        "box_source_folder_id": form.get("box_source_folder_id", "").strip() or os.getenv("BOX_SOURCE_FOLDER_ID", "").strip(),
         "use_live_llm": use_live_llm,
     }
 
@@ -120,6 +123,20 @@ def collect_sources(project: dict) -> tuple[list[dict], dict]:
     return sources, collector_status
 
 
+def collect_box_sources(project: dict) -> tuple[list[dict], dict]:
+    """Import existing Box files as evidence sources.
+
+    This complements Box export. Export writes generated project memory to Box;
+    read/import lets an existing Box folder become input knowledge for Gemini.
+    """
+    reader = BoxContentReader(
+        folder_id=project.get("box_source_folder_id") or None,
+        use_live=project.get("use_box_read", False),
+    )
+    sources, status = reader.collect_sources(project.get("project_goal", ""))
+    return sources, status.to_dict()
+
+
 def write_local_box_run(run_id: str, result: dict) -> Path:
     run_root = OUTPUT_ROOT / run_id
     box = LocalBoxMemory(run_root)
@@ -157,6 +174,7 @@ def write_local_box_run(run_id: str, result: dict) -> Path:
     box.write_json(project_folder, "metadata/role_strategy.json", result["role_strategy"])
     box.write_json(project_folder, "metadata/llm_generation.json", result.get("llm_generation", {}))
     box.write_json(project_folder, "metadata/evidence_collection.json", result["collector_status"])
+    box.write_json(project_folder, "metadata/box_read.json", result.get("box_read_status", {}))
     box.write_json(project_folder, "metadata/demo_checklist.json", result.get("hackathon_package", {}).get("checklist", {}))
     if result.get("showcase_features"):
         box.write_json(project_folder, "metadata/task_router.json", result["showcase_features"].get("task_inbox", {}))
@@ -184,6 +202,7 @@ def sync_to_box_and_persist(run_id: str, result: dict, project_folder: Path) -> 
     box = LocalBoxMemory(OUTPUT_ROOT / run_id)
     box.write_json(project_folder, "metadata/manifest.json", result["manifest"])
     box.write_json(project_folder, "metadata/llm_generation.json", result.get("llm_generation", {}))
+    box.write_json(project_folder, "metadata/box_read.json", result.get("box_read_status", {}))
     box.write_json(project_folder, "metadata/box_sync.json", box_status)
     box.write_json(OUTPUT_ROOT / run_id, "result.json", result)
     return result
@@ -198,8 +217,11 @@ def read_result(run_id: str) -> dict | None:
 
 def run_project(project: dict) -> str:
     sources, collector_status = collect_sources(project)
+    box_sources, box_read_status = collect_box_sources(project)
+    sources.extend(box_sources)
     result = generate_role_briefs(project, sources, project["roles"])
     result["collector_status"] = collector_status
+    result["box_read_status"] = box_read_status
     # Final release turns the generated analysis into a submit-ready package.
     result["hackathon_package"] = generate_hackathon_package(result)
     result["manifest"]["outputs"]["submission_package"] = [
@@ -218,6 +240,7 @@ def run_project(project: dict) -> str:
         "metadata/evidence_map.json",
         "metadata/role_strategy.json",
         "metadata/llm_generation.json",
+        "metadata/box_read.json",
         "metadata/demo_checklist.json",
         "metadata/task_router.json",
         "metadata/showcase_readiness.json",
@@ -243,7 +266,9 @@ def index():
         use_real_apify_env=should_use_live_apify(None),
         has_apify_token=bool(os.getenv("APIFY_API_TOKEN", "").strip()),
         use_real_box_env=should_use_live_box(None),
+        use_box_read_env=should_read_live_box(None),
         has_box_token=bool(os.getenv("BOX_DEVELOPER_TOKEN", "").strip()),
+        box_source_folder_id=os.getenv("BOX_SOURCE_FOLDER_ID", "").strip(),
         use_real_llm_env=should_use_live_llm(None),
         has_gemini_key=bool(os.getenv("GEMINI_API_KEY", "").strip()),
         gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash",
@@ -262,6 +287,8 @@ def analyze():
 def demo():
     project = dict(SAMPLE_PROJECT)
     project["use_live_box"] = should_use_live_box(None)
+    project["use_box_read"] = should_read_live_box(None)
+    project["box_source_folder_id"] = os.getenv("BOX_SOURCE_FOLDER_ID", "").strip()
     project["use_live_llm"] = should_use_live_llm(None)
     project["_use_sample_sources"] = True
     run_id = run_project(project)

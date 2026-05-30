@@ -34,8 +34,9 @@ The same project evidence should become different outputs for different people:
 - Flask web app with a polished local demo flow
 - Deterministic sample demo that does not need API keys
 - Optional live Apify Website Content Crawler integration
-- Optional live Box REST upload integration
+- Optional Box source-folder import and live Box REST upload integration
 - Optional Gemini role-brief enhancement with deterministic fallback
+- Existing Box folder files can be imported as input evidence
 - Local Box-style project-memory mirror for every run
 - Role-specific markdown reports
 - Evidence map and source IDs
@@ -77,6 +78,7 @@ project-box-memory/
     ├── evidence_map.json
     ├── role_strategy.json
     ├── llm_generation.json
+    ├── box_read.json
     ├── evidence_collection.json
     ├── demo_checklist.json
     ├── task_router.json
@@ -203,7 +205,34 @@ This is the recommended high-quality mode for judging, but keep the sample fallb
 
 ---
 
+## Enable Box source import
+
+This is the input side of Box. It lets existing Box files become source evidence before Gemini generates the role-specific reports.
+
+Edit `.env`:
+
+```env
+USE_BOX_READ=true
+BOX_DEVELOPER_TOKEN=your_box_developer_token_here
+BOX_SOURCE_FOLDER_ID=your_existing_box_folder_id
+BOX_READ_RECURSIVE=false
+BOX_READ_MAX_FILES=8
+BOX_READ_MAX_BYTES=120000
+```
+
+Supported text-like files are controlled by:
+
+```env
+BOX_READ_ALLOWED_EXTENSIONS=.md,.txt,.json,.csv,.py,.js,.ts,.html,.css,.yml,.yaml,.xml
+```
+
+For the demo, keep `BOX_READ_MAX_FILES` small. The app imports Box files as evidence sources with IDs like `[B1]`, then Gemini can cite those IDs in role briefs.
+
+---
+
 ## Enable live Box export
+
+This is the output side of Box. It writes generated project-memory artifacts back into Box.
 
 Edit `.env`:
 
@@ -251,13 +280,14 @@ The tests intentionally avoid live Apify and live Box calls.
 2. Say: “Teams do not only have a documentation problem. They have an audience mismatch problem.”
 3. Click **Run sample demo**.
 4. Show **Evidence collection status** and explain Apify.
-5. Show **Gemini AI generation status**. If Gemini is enabled, show enhanced roles; if not, explain deterministic fallback.
-6. Show **Box sync status** and the generated project-memory tree.
-7. Show **Hackathon package**.
-8. Show **Final showcase command center**.
-9. Compare Engineer, Executive, and Judge briefs.
-10. Download the full showcase package.
-11. Close with: “Box is the memory. Apify is the eyes. Gemini is the translator.”
+5. Show **Box source import status** if reading an existing Box folder, or explain that sample mode skips Box input.
+6. Show **Gemini AI generation status**. If Gemini is enabled, show enhanced roles; if not, explain deterministic fallback.
+7. Show **Box sync status** and the generated project-memory tree.
+8. Show **Hackathon package**.
+9. Show **Final showcase command center**.
+10. Compare Engineer, Executive, and Judge briefs.
+11. Download the full showcase package.
+12. Close with: “Box is the memory. Apify is the eyes. Gemini is the translator.”
 
 ---
 
