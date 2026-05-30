@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 import os
+import re
 import textwrap
 from typing import Any
 
@@ -135,6 +136,7 @@ class GeminiEnhancer(RoleBriefEnhancer):
             )
             text = (getattr(response, "text", None) or "").strip()
             if not self._looks_usable(text):
+                print(f"DEBUG: Gemini response was too short: {repr(text)}")
                 return self._fallback(role, "Gemini returned an empty or too-short response; using deterministic local brief.", draft_markdown)
             status = {
                 "ok": True,
@@ -259,7 +261,18 @@ class GeminiEnhancer(RoleBriefEnhancer):
     def _looks_usable(text: str) -> bool:
         if len(text) < 400:
             return False
-        return "##" in text and "Source" in text
+        # Require at least a couple of section headings so we know we got a
+        # structured brief and not a stray sentence or an error string.
+        if text.count("##") < 2:
+            return False
+        # Confirm the response is actually about the brief's content. The model
+        # output can be truncated by max_output_tokens before it reaches the
+        # final "## Source references" heading, so don't depend on that section
+        # existing. Instead accept any evidence reference, e.g. a citation like
+        # [S1]/[A2]/[N3] or the word "source" in any case.
+        if re.search(r"\[[A-Za-z]+\d+\]", text):
+            return True
+        return "source" in text.lower()
 
 
 def create_llm_enhancer(use_live: bool | None = None) -> RoleBriefEnhancer:
